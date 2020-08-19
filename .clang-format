@@ -1,0 +1,7 @@
+BasedOnStyle: LLVM
+AlignOperands: false
+AlignAfterOpenBracket: DontAlign
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+NamespaceIndentation: All
+IndentCaseLabels: true
+ColumnLimit: 80
