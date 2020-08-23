@@ -21,108 +21,118 @@
  *
  *---------------------------------------------------------------------------*/
 
+#ifndef CASCADE_UTIL_LOGGING_HH
+#define CASCADE_UTIL_LOGGING_HH
+
+#include "cascade/errors/error.hh"
+#include "cascade/errors/error_visitor.hh"
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace cascade::util {
   namespace colors {
-    /** @brief Bright red color code */
-    constexpr auto code_bold_red = "\u001b[31;1m";
+    /** @brief Black ANSI code */
+    constexpr auto code_black = "\u001b[30m";
 
-    /** @brief Red color code */
+    /** @brief Red ANSI code */
     constexpr auto code_red = "\u001b[31m";
 
-    /** @brief Bright blue color code */
-    constexpr auto code_bold_blue = "\u001b[34;1m";
+    /** @brief Green ANSI code */
+    constexpr auto code_green = "\u001b[32m";
 
-    /** @brief Bright white color code */
-    constexpr auto code_bold_white = "\u001b[37;1m";
+    /** @brief Yellow ANSI code */
+    constexpr auto code_yellow = "\u001b[33m";
 
-    /** @brief Code to reset colors to default */
-    constexpr auto code_reset = "\u001b[0m";
+    /** @brief Blue ANSI code */
+    constexpr auto code_blue = "\u001b[34m";
 
-    /** @brief Code to a dark gray color */
-    constexpr auto code_dark_gray = "\u001b[30;1m"; // "\u001b[38;5;240m";
+    /** @brief Magenta ANSI code */
+    constexpr auto code_magenta = "\u001b[35m";
 
-    /** @brief Code to the standard cyan color */
+    /** @brief Cyan ANSI code */
     constexpr auto code_cyan = "\u001b[36m";
 
-    /** @brief Code to the bold yellow color */
+    /** @brief White ANSI code */
+    constexpr auto code_white = "\u001b[37m";
+
+    /** @brief Reset ANSI code */
+    constexpr auto code_reset = "\u001b[0m";
+
+    /** @brief Bright Black ANSI code */
+    constexpr auto code_bold_black = "\u001b[30;1m";
+
+    /** @brief Bright Red ANSI code */
+    constexpr auto code_bold_red = "\u001b[31;1m";
+
+    /** @brief Bright Green ANSI code */
+    constexpr auto code_bold_green = "\u001b[32;1m";
+
+    /** @brief Bright Yellow ANSI code */
     constexpr auto code_bold_yellow = "\u001b[33;1m";
 
-    /**
-     * @brief Returns the string passed but with red and reset codes
-     * added to the beginning and end.
-     * @param message The message to modify
-     * @return The message, but with ANSI codes for red added
-     */
-    inline std::string red(std::string message) {
-      return code_red + message + code_reset;
-    }
+    /** @brief Bright Blue ANSI code */
+    constexpr auto code_bold_blue = "\u001b[34;1m";
 
-    /**
-     * @brief Returns the string passed but with red and reset codes
-     * added to the beginning and end.
-     * @param message The message to modify
-     * @return The message, but with ANSI codes for bold red added
-     */
-    inline std::string bold_red(std::string message) {
-      return code_bold_red + message + code_reset;
-    }
+    /** @brief Bright Magenta ANSI code */
+    constexpr auto code_bold_magenta = "\u001b[35;1m";
 
-    /**
-     * @brief Returns the string passed but with blue and reset codes
-     * added to the beginning and end.
-     * @param message The message to modify
-     * @return The message, but with ANSI codes for bold blue added
-     */
-    inline std::string bold_blue(std::string message) {
-      return code_bold_blue + message + code_reset;
-    }
+    /** @brief Bright Cyan ANSI code */
+    constexpr auto code_bold_cyan = "\u001b[36;1m";
 
-    /**
-     * @brief Returns the string passed but with white and reset codes
-     * added to the beginning and end.
-     * @param message The message to modify
-     * @return The message, but with ANSI codes for bold white added
-     */
-    inline std::string bold_white(std::string message) {
-      return code_bold_white + message + code_reset;
-    }
+    /** @brief Bright White ANSI code */
+    constexpr auto code_bold_white = "\u001b[37;1m";
 
-    /**
-     * @brief Returns the string passed but with gray and reset codes
-     * added to the beginning and end.
-     * @param message The message to modify
-     * @return The message, but with ANSI codes for dark gray added
-     */
-    inline std::string dark_gray(std::string message) {
-      return code_dark_gray + message + code_reset;
-    }
+#define COLOR_FUNC(color)                                                                          \
+  inline std::string color(std::string message) { return code_##color + message + code_reset; }    \
+  inline std::string bold_##color(std::string message) {                                           \
+    return code_bold_##color + message + code_reset;                                               \
+  }
 
-    /**
-     * @brief Returns the string passed but with cyan and reset codes
-     * added to the beginning and end.
-     * @param message The message to modify
-     * @return The message, but with ANSI codes for cyan added
-     */
-    inline std::string cyan(std::string message) {
-      return code_cyan + message + code_reset;
-    }
+    COLOR_FUNC(black)
+    COLOR_FUNC(red)
+    COLOR_FUNC(green)
+    COLOR_FUNC(yellow)
+    COLOR_FUNC(blue)
+    COLOR_FUNC(magenta)
+    COLOR_FUNC(cyan)
+    COLOR_FUNC(white)
 
-    /**
-     * @brief Returns the string passed but with bold yellow and reset codes
-     * added to the beginning and end.
-     * @param message The message to modify
-     * @return The message, but with ANSI codes for bold yellow added
-     */
-    inline std::string bold_yellow(std::string message) {
-      return code_bold_yellow + message + code_reset;
-    }
+#undef COLOR_FUNC
   } // namespace colors
+
+  class logger {
+    class impl;
+
+    std::unique_ptr<impl> m_impl;
+
+  public:
+    /**
+     * @brief Creates a logger instance
+     * @param source The source code to use to pretty-print errors
+     */
+    logger(std::string_view source);
+
+    /**
+     * @brief Pretty-prints an error
+     * @param error The error to print
+     */
+    void error(std::unique_ptr<errors::error> error);
+
+    ~logger();
+  };
 
   /**
    * @brief Prints an error message not associated with code
    * @param message The message to print
    */
-  void error(std::string message);
+  void error(std::string_view message);
+
+  /**
+   * @brief Pretty-prints a list of tokens
+   * @param toks The list to print
+   */
+  void debug_print(std::vector<core::token> toks);
 } // namespace cascade::util
+
+#endif

@@ -16,19 +16,41 @@
  *
  *---------------------------------------------------------------------------*
  *
- * errors/error.cc:
- *   Implements the "error" objects.
+ * errors/error.hh:
+ *   Defines A generic "error" object.
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/errors/error.hh"
+#ifndef CASCADE_ERRORS_ERROR_VISITOR_HH
+#define CASCADE_ERRORS_ERROR_VISITOR_HH
 
-using namespace cascade;
-using namespace errors;
+namespace cascade::errors {
+  /** @brief Forward declaration for error */
+  class error;
 
-std::unique_ptr<error> error::from(errors::error_code code, core::token tok, std::string note) {
-  // I would change the return type to unique_ptr<token_error>
-  // but it might change
-  return std::make_unique<token_error>(
-      code, tok, note == "" ? std::nullopt : std::make_optional(note));
-}
+  /** @brief Forward declaration for token_error */
+  class token_error;
+
+  /** @brief Forward declaration for node_error */
+  class node_error;
+
+  /** @brief Represents a visitor for errors */
+  class error_visitor {
+  public:
+    /**
+     * @brief Visits a token error
+     * @param tok_error The token to visit
+     */
+    virtual void visit(token_error &tok_error) = 0;
+
+    /**
+     * @brief Visits a node error
+     * @param node_err The node to visit
+     */
+    virtual void visit(node_error &node_err) = 0;
+
+    virtual ~error_visitor() {}
+  };
+} // namespace cascade::errors
+
+#endif
