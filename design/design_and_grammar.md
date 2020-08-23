@@ -4,7 +4,7 @@ Note the regex syntax. Also, between any of the `keywords` or *definitions*, whi
 ## Comments
 Comments block out part of a file, and any text that is inside a comment is "thrown out" by the initial lexing phase. 
 
-```hs
+```
 -- this is a comment
 ```
 
@@ -14,15 +14,15 @@ Cascade single-line comments are created with `--`. They last until the end of a
 
 *single_line_comment* := `--` .* (`\n` | `\r\n`)
 
-Multi-line comments are created with `-*-`, and last until another `-*-`. They **cannot** be nested.
+Multi-line comments are created with `-*`, and last until another `*-`. They **cannot** be nested.
 
-*multi_line_comment* := `-*-` .* `-*-`
+*multi_line_comment* := `-*` .* `*-`
 
 ## Literals
 Literals represent the direct value of an expression, instead of representing the steps to get 
 said value. The value is also known at compile-time, so for the most part they are evaluated then. 
 
-```rust
+```
 let char_literal = 'a';
 let string_literal = "This is an example";
 let number_literal = 48290342;
@@ -79,8 +79,9 @@ character, and the rest can be alphanumeric and with underscores. Preferred nami
 ## Types
 Cascade is statically typed and not very implicit, and thus requires a way to write out its types when they aren't deducted. 
 
-```rust
+```
 let byte: i8 = 5;
+let byte_array: []i8 = [3, 2, 1, 0];
 let point3d: Point3D = { x: 5.5368, y: 24.3333333, z: 23830.14322 };
 let ref_to_point3d: &Point3D = &other;
 let ptr_to_byte: *i8 = @byte;
@@ -89,9 +90,9 @@ let ref_to_ptr_to_array_of_ptrs_to_i32s: &*[]*i32 = ...;
 ```
 
 Types can be a reference or a standard type. References are denoted with a `&`, and must come at the beginning (as you can't have a pointer to a reference, for instance). Pointers and array come afterwards (as you can have a reference to a pointer or array), then the actual type name.
-- *type* := *reference*? *pointer*? *builtin_type* | *type_name*
-- *reference* := `&`
-- *pointer_or_array* := `* mut` | `*` | `[]`
+- *type* := *reference*? *pointer_or_array** (*builtin_type* | *type_name*)
+- *reference* := `&` | `&` `mut`
+- *pointer_or_array* := `*` `mut` | `*` | `[]`
 - *builtin_type* := `bool` | *builtin_signed* | *builtin_unsigned*
 - *builtin_signed* := `i8` | `i16` | `i32` | `i64` | `i128`
 - *builtin_unsigned* := `u8` | `u16` | `u32` | `u64` | `u128`
@@ -113,7 +114,7 @@ be a constant, a variable, a function, a type, or anything else.
 `const` declarations are compile-time constant expressions assigned to a value. The closest 
 approximation is `constexpr` in C++. Preferred naming scheme is `SCREAMING_SNAKE_CASE`. 
 
-```c++
+```++
 const SOME_MAGIC_CONSTANT = 320;
 const OTHER_MAGIC_CONSTANT: u8 = 30;
 ```
@@ -123,17 +124,19 @@ const OTHER_MAGIC_CONSTANT: u8 = 30;
 `static` declarations are effectively just global variables. They are initialized at the 
 program's startup time, and destroyed at program termination.
 
-```c++
+```++
 static thing = 32;
 ```
 
 - *static_decl* := `static` *var_name* (`:` *type*)? `=` *expression* `;`
 
 #### `fn` Declaration 
+- *fn_decl* := `fn` *fn_name* `(` *fn_argument_list* `)` *type* *block_expr*
+
 `fn` declarations define a function. They contain a name, a list of arguments (and their types), 
 a return type, and a body.
 
-```rust
+```
 fn fibonacci(n: i32) i64 {
   match n {
     case 0, 1, 2 -> n,
@@ -142,27 +145,137 @@ fn fibonacci(n: i32) i64 {
 }
 ```
 
-- *fn_decl* := `fn` *fn_name* `(` *fn_argument_list* `)` *type* *block_expr*
 - *fn_argument* := *var_name* `:` *type*
 - *fn_argument_list* := *fn_argument* | *fn_argument* `,` *fn_argument_list*
 
 #### `struct` Declaration
-`struct` declarations are the Cascade equivalent of a struct in C. It represents simply a set
-of structured data, and has no associated methods or behaviours. It *only* represents
-the data itself. Each field has a name and a type, and an optional `pub` visibility 
-modifier to allow a field to be accessed. Note: If no fields are marked `pub`, 
-all fields are implicitly `pub`.
+- *struct_decl* := `struct` *type_name* (`:` *struct_inherit_list*) ?`{` (*struct_field* | *struct_method*)* `}`
+- *struct_inherit_list* := *type_name* | *type_name* `,` *struct_inherit_list*
+- *struct_field_visibility* := `pub` | `internal`
+- *struct_field* := *struct_field_visibility*? *var_name* `:` *type* `;`
+- *struct_method_name* := ((`@`(`create`|`destroy`|`move`|`clone`)) | (*fn_name*))
+- *struct_method_arg_list* := (`self`)? (`,` *fn_argument_list*)?
+- *struct_method* := *struct_field_visibility*? `fn` *struct_method_name* `(` *struct_method_arg_list* `)` *block_expr*
 
-```rust
-struct Point3D {
+`struct` declarations are the Cascade equivalent of a class. Each field has a name and a type, and an optional `pub` visibility 
+modifier to allow a field to be accessed. **Note: If every field is not marked `pub` and there are no methods, every field is implicitly `pub`.**
+
+Structs have four special methods, called `@create`, `@destroy`, `@move` and `@clone`. These functions are called on construction,
+destruction, moving and cloning respectively. 
+
+Methods are either freestanding member functions (no `&self` / `self` argument), or they are normal member functions (have a `&self` argument).
+`&self` is a special argument that is automatically passed, and acts effectively for type `T` as a `&T` pointing to the object
+they were called on. Objects can also take in `&mut self`, to get a `&mut T`. Finally, methods can take ownership of the instance they're operating on
+with `self`. 
+
+```
+struct Point {
     pub x: f64;
     pub y: f64;
+
+    pub fn @create(self, x: f64, y: f64) {
+        self.x = x;
+        self.y = y;
+    }
+}
+
+struct Point3D extends Point {
+    -- self.super is now a Point instance
     pub z: f64;
+
+    -- "static" function, notice how it doesn't have
+    -- a `self` argument
+    pub fn from(other: Point3D) Point3D {
+        Point3D(other.x, other.y, other.z);
+    }
+    
+    pub fn @create(&mut self, x: f64, y: f64, z: f64) {
+        -- if super is run at all, it **must** be run first
+        self.super(x, y);
+
+        self.z = z;
+    }
 }
 ```
 
-- *struct_decl* := `struct` *type_name* `{` *struct_field** `}`
-- *struct_field* := `pub`? *var_name* `:` *type* `;`
+##### `@` Methods
+All methods starting with an `@` are called automatically by the compiler, and cannot be explicitly invoked. All of them
+can optionally have `pub` switched for `internal` (or outright removed). This could be useful if you wanted to make a class only usable as a derived instance, or if you wanted to make an object unclonable. Note: This can make it impossible to use
+an object if you, say, hid `@destroy`.
+
+##### `@create` Methods
+`@create` is effectively a main constructor for a type. It takes in a `mut self` argument, and any arguments the user declares. There
+can only be one, `@create` cannot be overloaded.
+
+It is called by the compiler automatically whenever an object is constructed outside of a struct expression. Before control is given
+to the user-defined `@create`, `@create` has been called on no fields, and all variables are uninitialized. Not initializing all fields
+is undefined behaviour.
+
+```
+struct Point {
+    pub fn @create(&mut self, x: f64, y: f64) {}
+}
+
+let pt = Point(3.0, 2.0); -- @create called here
+```
+
+Moving, cloning, and copying builtins are all allowed inside `@create`. 
+
+It can be implicitly generated if none is given:
+```
+pub fn @create(&self) {}
+```
+
+##### `@destroy` Methods
+`@destroy` is the destructor for an object. 
+
+It is called by the compiler automatically whenever an object goes out of scope.
+
+It can be implicitly generated if none is given, and is the equivalent of:
+```
+pub fn @destroy(&self) {}
+```
+
+All fields have their `@destroy` called after control returns from the structure's `@destroy`.
+
+```
+struct Point {
+    -- ...
+    pub fn @destroy()
+}
+
+{
+    let pt = Point(3.0, 2.0);
+
+    -- @destroy called here
+}
+```
+
+`@destroy` **must not** have any arguments besides `&mut self` or `&self`. It is allowed to modify any fields, and move any fields.
+
+##### `@move` Methods
+`@move` is the "move constructor" of an object.
+
+It has the following signature, assuming type `T`:
+```
+fn @move(&mut self, mut other: T) {}
+```
+
+It can be default generated, is approximately this in pseudocode:
+```
+pub fn @move(&mut self, mut other: T) {
+    for field in other {
+        self.field = other.field;
+    }
+}
+```
+It is a simple memberwise move of every field.
+
+
+It is allowed to move any 
+
+#### `interface` Declarations and `extension` Blocks
+**TO BE DECIDED**
 
 ## Statements
 Statements are side-effects in the program. They simply make something happen.
@@ -179,7 +292,7 @@ Statements are side-effects in the program. They simply make something happen.
 #### `let` Statement
 `let` statements are local, immutable variable declarations.
 
-```rust
+```
 let x = 5;
 ```
 
@@ -188,7 +301,7 @@ let x = 5;
 #### `mut` Statement
 `mut` statements are exactly the same as `let` semantically, besides one key point. They are mutable.
 
-```rust
+```
 mut x = 6;
 x = 3;
 ```
@@ -205,7 +318,7 @@ is executed, at which case they exit and execution continues.
 
 - *loop_unconditional* := `loop` *block_expr*
 
-```rust
+```
 mut has_failed = false;
 
 loop {
@@ -221,7 +334,7 @@ The second type are conditional loops, also known as `while` loops.
 
 - *loop_while* := `while` *expression* *block_expr*
 
-```rust
+```
 mut done = false;
 
 while !done {
@@ -231,7 +344,7 @@ while !done {
 
 The final type is the `for..in` loop. They act on ranges and other "iterable" types.
 
-```rust
+```
 let array = [1, 2, 3, 4, 5];
 
 for i in 1..5 {
@@ -249,7 +362,7 @@ for i in array {
 The break statement was previously shown inside a `loop`, and the usage
 is the same as in other languages. It "breaks out" of a loop.
 
-```rust
+```
 loop {
     if cond {
         break;
@@ -266,7 +379,7 @@ Again, `continue` in Cascade is the same as in other languages. It immediately j
 
 - *continue_stmt* := `continue` `;`
 
-```rust
+```
 for x in list {
     if x < 5 {
         continue;
@@ -283,7 +396,7 @@ that the expression being returned evaluates to.
 
 - *ret_stmt* := `ret` *expression*? `;`
 
-```nasm
+```
 ret fib(n - 1) + fib(n - 2);
 ```
 
@@ -297,7 +410,7 @@ information.
 #### Expression Statement
 Expression statements are simply expressions that have their return value discarded.
 
-```hs
+```
 vector.push(5);
 
 if true {
@@ -315,6 +428,10 @@ symbols and modularizing a program.
 module example_api;
 
 import std::core::String;
+
+import TypeOne, TypeTwo from some::lib;
+
+import std::core::Vector as Vec;
 
 export import example_api::submodule;
 
@@ -389,7 +506,7 @@ A call to a function (or a functor object)
 #### Binary Expression
 An expression with two terms 
 
-```rust
+```
 let result = x | y;
 ```
 
@@ -402,18 +519,18 @@ let result = x | y;
 #### Unary Expression
 An expression with one term
 
-```rust
+```
 let x = 5;
 let ptr_to_x = @5;
 ```
 
-- *unary_op* := `&` | `@` | `*` | `-` | `!` | `~`
+- *unary_op* := `&` | `@` | `*` | `-` | `not` | `~`
 - *unary_expr* := *unary_op* *expression*
 
 #### Field Access Expression
 An attempt to access a field on a struct with the `.` operator.
 
-```c++
+```++
 foo.bar;
 ```
 
@@ -422,7 +539,7 @@ foo.bar;
 #### Index Expression
 An index expression is any expression using `[]` to access something.
 
-```rust
+```
 let result = array[5];
 ```
 
@@ -431,7 +548,7 @@ let result = array[5];
 #### Array Expression
 An array expression is simply an expression that evaluates to an array.
 
-```rust
+```
 let array = [1, 2, 3, 4, fib(5)];
 ```
 
@@ -443,7 +560,7 @@ An attempt to call a method on a struct. While this is syntactically identical t
 functor object in a structure's field, they are different things. Idealy, the analyzer will 
 discern which one it is and modify the AST accordingly.  
 
-```c++
+```++
 foo.bar(10);
 ```
 
@@ -454,7 +571,7 @@ foo.bar(10);
 Lambda expressions are effectively syntax sugar for in-line function declarations, but 
 they are also able to "capture" variables in their scope. 
 
-```rust
+```
 let y = 3;
 
 let lambda = |x: i32| i32 {
@@ -472,7 +589,7 @@ Lambdas can also be type-deducted, allowing you to drop the parameter type and t
 - *lambda_argument_list* := *var_name* | *var_name* `,` *lambda_argument_list*
 - *lambda_untyped* := `|` *lambda_argument_list* `|` *block_expr*
 
-```rust
+```
 let y = 3;
 
 let type_deducted_lambda = |x| {
@@ -483,7 +600,7 @@ let type_deducted_lambda = |x| {
 #### Struct Expression
 A struct expression is simply an initialization of a structure in place. 
 
-```c++
+```++
 Point3D { x: 3.3333333333333, y: 3892.993874, z: 4 };
 ```
 
@@ -494,7 +611,7 @@ Point3D { x: 3.3333333333333, y: 3892.993874, z: 4 };
 An If-Then expression is just another form of `if`, in this case it's more appropriate 
 for inline use. `else` is not optional, as if-then always evaluates to a result.
 
-```hs
+```
 if condition then 5 else 6;
 ```
 
@@ -507,7 +624,7 @@ not be used to initialize any values. Note that semicolons after `{}`s are not n
 
 - *block_expr* := `{` *expression** `}`
 
-```rust
+```
 let five_plus_five = {
     let x = 5;
 
@@ -520,7 +637,7 @@ Just a standard `if`. They can be used as expressions, but only if they can eval
 
 - *if_expr* := `if` *expression* *block_expr* (`else` (*block_expr* | *if_expr*))
 
-```rust
+```
 if condition {
     do_something();
 }
@@ -531,3 +648,52 @@ let y = if x < -2 {
     x * 3 + 1;
 }
 ```
+
+#### Match Expression
+- *match_expr* := `match` *expression* `{`
+- *match_case* := `case` *expression* `->` *expression*
+- *match_list* := *match_case* | *match_case* `,` *match_list*  
+
+## Construction, Destruction, Move and Clone Semantics
+Cascade has decided to ditch the implicit-ness of move/copy semantics, and references for that matter. The language 
+is also very RAII-style, with destruction of an object happening at the end of its scope.
+
+The only implicit thing the language does are moves, and clones
+on builtin integral/floating-point types.
+
+```
+struct Point {
+    pub x: f64;
+    pub y: f64;
+
+    pub fn @destroy(self) { ... }
+}
+
+fn accepts_point(pt: Point) { ... }
+
+let pt = Point { x = 3.3, y = 12.5 };
+
+accepts_point(pt); -- move happens here
+```
+
+After a move, the compiler will enforce no more attempts to access that variable, and the value will be removed from the stack. `Point::@destroy` will not be called. 
+
+```
+fn accepts_point(pt: Point) {
+    io::print(pt.x); -- pt.x is copied here
+
+    -- pt reaches end of scope without being moved,
+    -- pt.@destroy() is called here
+}
+```
+
+If you need to pass a *copy* of an object, you can use `clone`.
+
+```
+accepts_point(clone(pt))
+```
+
+This creates a new `Point` instance (let's call it `pt2`), and calls `Point::@clone(&mut pt2, &pt)`. 
+
+## Polymorphism
+**TO BE DECIDED**
