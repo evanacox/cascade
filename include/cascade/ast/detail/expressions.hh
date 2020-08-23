@@ -16,17 +16,19 @@
  *
  *---------------------------------------------------------------------------*
  *
- * ast/ast.hh:
- *   Master header file for the AST, includes all the needed headers
+ * ast/detail/expressions.hh:
+ *   Outlines the expression AST nodes
  *
  *---------------------------------------------------------------------------*/
 
-#ifndef CASCADE_AST_AST_HH
-#define CASCADE_AST_AST_HH
+#ifndef CASCADE_AST_DETAIL_EXPRESSIONS_HH
+#define CASCADE_AST_DETAIL_EXPRESSIONS_HH
 
-#include "cascade/ast/detail/declarations.hh"
-#include "cascade/ast/detail/expressions.hh"
 #include "cascade/ast/detail/nodes.hh"
-#include "cascade/ast/detail/statements.hh"
+#include "cascade/core/lexer.hh"
+
+namespace cascade::ast {
+  //
+}
 
 #endif
