@@ -31,9 +31,13 @@
 *.out
 *.app
 
+# IDE / Editor folders
 build/
 .clangd/
 .vscode/
 compile_commands.json
 .idea/
 cmake-build-*/
+
+# Ignore files being used to test compiler
+test_files/

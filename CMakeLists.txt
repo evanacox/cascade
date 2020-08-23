@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.15)
 project (cascade LANGUAGES CXX)
 
 option (ENABLE_WERROR "Whether or not to build with warnings treated as errors" ON)
+option (FMT_HEADER_ONLY "Whether or not to #define FMT_HEADER_ONLY" ON)
 
 file (GLOB_RECURSE SOURCE_FILES "src/*.cc" "src/**/*.cc")
 
@@ -34,4 +35,8 @@ if (ENABLE_WERROR)
 
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WARNING_OPTIONS}")
     message (STATUS "Current C++ flags: ${CMAKE_CXX_FLAGS}")
+endif ()
+
+if (FMT_HEADER_ONLY)
+    add_definitions (-DFMT_HEADER_ONLY)
 endif ()

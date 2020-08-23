@@ -1,7 +1,11 @@
+##################
 BasedOnStyle: LLVM
-AlignOperands: false
+##################
+
+AlignOperands: true
 AlignAfterOpenBracket: DontAlign
+BreakBeforeBinaryOperators: NonAssignment
+ColumnLimit: 100
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
-NamespaceIndentation: All
 IndentCaseLabels: true
-ColumnLimit: 80
+NamespaceIndentation: All
