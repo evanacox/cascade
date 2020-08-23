@@ -26,6 +26,7 @@
 
 #include "cascade/util/argument_parser.hh"
 #include "cascade/util/mixins.hh"
+#include <filesystem>
 
 namespace cascade {
   /**
@@ -35,6 +36,14 @@ namespace cascade {
    */
   class driver : util::noncopyable {
     util::argument_parser m_arg_parser;
+
+    /**
+     * @brief Attempts to compile a source string
+     * @param path Path to the file being compiled
+     * @param source The source code
+     * @return Whether or not the compilation was successful
+     */
+    [[nodiscard]] bool compile(std::filesystem::path path, std::string_view source);
 
   public:
     /** @brief Disallow default construction */
@@ -54,7 +63,7 @@ namespace cascade {
      * that main immediately calls after gaining control
      * @return Returns an exit code that `main` can return
      */
-    int run();
+    [[nodiscard]] int run();
   };
 } // namespace cascade
 

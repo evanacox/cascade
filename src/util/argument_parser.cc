@@ -34,17 +34,15 @@ using ap = argument_parser;
 using options = ap::options;
 
 static std::optional<emitted> emitted_from_string(const std::string &input) {
-  if (input == "llvm_ir")
+  if (input == "llvm-ir")
     return emitted::llvm_ir;
+  else if (input == "llvm-bc")
+    return emitted::llvm_bc;
   else if (input == "exe")
     return emitted::executable;
-  else if (input == "att_asm")
-    return emitted::att_asm;
-  else if (input == "intel_asm")
-    return emitted::intel_asm;
-  else if (input == "default_asm")
-    return emitted::default_asm;
-  else if (input == "object")
+  else if (input == "asm")
+    return emitted::assembly;
+  else if (input == "obj")
     return emitted::object;
   else
     return std::nullopt;
@@ -71,9 +69,8 @@ static constexpr auto default_output = "main.exe";
 static constexpr auto default_output = "main";
 #endif
 
-options::compilation_options(std::vector<std::string> paths,
-    optimization_level opt_level, bool debug_symbols, emitted emitted,
-    std::string triple, std::string output)
+options::compilation_options(std::vector<std::string> paths, optimization_level opt_level,
+    bool debug_symbols, emitted emitted, std::string triple, std::string output)
     : m_files(std::move(paths)),
       m_opt_level(opt_level),
       m_debug_symbols(debug_symbols),
@@ -86,41 +83,38 @@ ap::argument_parser(int argc, const char **argv) : m_argc{argc}, m_argv{argv} {}
 std::optional<options> ap::parse() {
   auto default_triple = llvm::sys::getDefaultTargetTriple();
 
-  cxxopts::Options console_options(
-      "cascade", "Compiler for the Cascade language");
+  cxxopts::Options console_options(m_argv[0], "Compiler for the Cascade language");
+
+  console_options.custom_help("[options]");
+  console_options.positional_help("file...");
+
   console_options.add_options()
       //
       ("d,debug", "Whether or not to include debug symbols",
           cxxopts::value<bool>()->default_value("false"))
       //
-      ("o,optimize",
-          "What level of optimization to do. Levels: 0 (disabled), 1 "
-          "(non-aggressive), 2 (aggressive), 3 (extremely aggressive, enables "
-          "unsafe optimizations). Defaults to 0",
+      ("O,optimize", "Optimization levels. Options: 0, 1, 2, 3",
           cxxopts::value<int>()->default_value("0"))
       //
-      ("e,emitted",
-          "What kind of output to emit (Options: 'llvm_ir', 'att_asm', "
-          "'intel_asm', 'object', 'exe', 'default_asm'. Defaults to 'llvm_ir')",
-          cxxopts::value<std::string>()->default_value("llvm_ir"))
+      ("e,emit", "What the compiler should output. [llvm-ir|llvm-bc|asm|obj|exe]",
+          cxxopts::value<std::string>()->default_value("llvm-ir"))
       //
-      ("output", "File to put the output in (defaults to 'main' or 'main.exe')",
+      ("o,output", "File to put the output in",
           cxxopts::value<std::string>()->default_value(default_output))
       //
-      ("target", "The LLVM target triple to target",
+      ("t,target", "The LLVM target to output for",
           cxxopts::value<std::string>()->default_value(default_triple))
       //
-      ("h,help", "Print usage")
+      ("h,help", "Prints this page")
       //
-      ("input-files", "The files to compile",
-          cxxopts::value<std::vector<std::string>>(), "input-files");
+      ("input-files", "", cxxopts::value<std::vector<std::string>>(), "INPUT FILES");
 
   try {
     console_options.parse_positional({"input-files"});
     auto result = console_options.parse(m_argc, m_argv);
 
     if (result.count("help")) {
-      std::cout << console_options.help() << "\n";
+      std::cout << console_options.help();
 
       return std::nullopt;
     }
@@ -129,18 +123,16 @@ std::optional<options> ap::parse() {
     auto opt_level = optimization_from_int(result["optimize"].as<int>());
 
     if (!opt_level) {
-      util::error(
-          "Unknown optimization level! Accepted options: '0', '1', '2', '3'");
+      util::error("Unknown optimization level! Accepted options: '0', '1', '2', '3'");
 
       return std::nullopt;
     }
 
-    auto emitted = emitted_from_string(result["emitted"].as<std::string>());
+    auto emitted = emitted_from_string(result["emit"].as<std::string>());
 
     if (!emitted) {
-      util::error(
-          "Unknown output form! Accepted options: 'llvm_ir', 'att_asm', "
-          "'intel_asm', 'object', 'exe', 'default_asm'");
+      util::error("Unknown output form! Accepted options: 'llvm_ir', 'att_asm', "
+                  "'intel_asm', 'object', 'exe', 'default_asm'");
 
       return std::nullopt;
     }
@@ -148,18 +140,19 @@ std::optional<options> ap::parse() {
     auto output = result["output"].as<std::string>();
     auto target = result["target"].as<std::string>();
 
-    try {
+    if (result.count("input-files")) {
       auto files = result["input-files"].as<std::vector<std::string>>();
 
-      return std::make_optional<options>(options(
-          files, opt_level.value(), debug, emitted.value(), target, output));
-    } catch (cxxopts::OptionException &e) {
-      util::error("No input files!");
-
-      return std::nullopt;
+      return std::make_optional<options>(
+          options(files, opt_level.value(), debug, emitted.value(), target, output));
     }
+
+    return std::make_optional<options>(
+        options({}, opt_level.value(), debug, emitted.value(), target, output));
   } catch (const cxxopts::OptionException &err) {
     util::error(std::string("Error while parsing options: ") + err.what());
+
+    std::cout << console_options.help();
     return std::nullopt;
   }
 }

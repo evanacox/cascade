@@ -22,9 +22,22 @@
  *---------------------------------------------------------------------------*/
 
 #include "cascade/driver.hh"
+#include "cascade/util/logging.hh"
 
 int main(int argc, const char **argv) {
   cascade::driver driver(argc, argv);
 
-  return driver.run();
+#ifdef NDEBUG
+  try {
+#endif
+    return driver.run();
+#ifdef NDEBUG
+  } catch (std::exception &e) {
+    using namespace std::literals::string_literals;
+
+    cascade::util::error(
+        "internal compiler error: "s + e.what()
+        + ". If you see this, please make a bug report immediately with the input that caused it.");
+  }
+#endif
 }

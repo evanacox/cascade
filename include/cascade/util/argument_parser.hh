@@ -47,12 +47,10 @@ namespace cascade::util {
   enum class emitted {
     /** @brief Emits LLVM IR from the compiler */
     llvm_ir,
-    /** @brief Emits AT&T syntax assembly */
-    att_asm,
-    /** @brief Emits Intel syntax assembly */
-    intel_asm,
-    /** @brief Emits the default assembly for the platform */
-    default_asm,
+    /** @brief Emits LLVM bitcode from the compiler */
+    llvm_bc,
+    /** @brief Emits assembly syntax */
+    assembly,
     /** @brief Emits an object file */
     object,
     /** @brief Emits an executable */

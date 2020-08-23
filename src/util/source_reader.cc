@@ -22,27 +22,97 @@
  *---------------------------------------------------------------------------*/
 
 #include "cascade/util/source_reader.hh"
+#include "cascade/util/logging.hh"
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <stdexcept>
 
 using namespace cascade::util;
+using opt_file_list = file_reader::opt_file_list;
+using options = file_reader::options;
+namespace fs = std::filesystem;
 
-using options = argument_parser::options;
+void detail::normalize(detail::file_source &ref) {
+  ref.m_path =
+      ref.m_path.lexically_normal().lexically_relative(fs::current_path());
 
-void detail::normalize(std::string &ref) {
-  ref.erase(std::remove(ref.begin(), ref.end(), '\r'), ref.end());
+  ref.m_source.erase(
+      std::remove(ref.m_source.begin(), ref.m_source.end(), '\r'),
+      ref.m_source.end());
 }
 
-std::vector<std::string> file_reader::read(options &opts) {
-  (void)opts;
+/**
+ * @brief Checks if an input string is valid UTF-8
+ * @param str A string_view to the string to check
+ * @return Whether or not the string is valid UTF-8
+ */
+[[nodiscard]] static bool is_valid_utf8(std::string_view str) {
+#pragma message(                                                               \
+    "::is_valid_utf8(std::string_view) not implemented, currently always returns true")
 
-  return {""};
+  (void)str;
+
+  return true;
 }
 
-std::vector<std::string> pipe_reader::read(options &opts) {
-  if (opts.files().size() != 0) {
-    throw std::logic_error{"Expected 0 files on a pipe input!"};
+opt_file_list file_reader::read(options &opts) {
+  std::vector<detail::file_source> sources;
+
+  // if any files have an error, no file contents are returned
+  auto had_error = false;
+
+  for (auto &file_path : opts.files()) {
+    fs::path path(fs::absolute(file_path));
+
+    // user could pass a non-existent path
+    if (!fs::exists(path)) {
+      had_error = true;
+      util::error(file_path + ": No such file or directory!");
+
+      continue;
+    }
+
+    // compiler doesn't deal w/ binary files, or with symlinks/pipes/whatever
+    if (!fs::is_regular_file(path)) {
+      had_error = true;
+      util::error(file_path + ": File is not a regular file!");
+
+      continue;
+    }
+
+    std::ifstream stream(file_path);
+
+    if (!stream.is_open()) {
+      had_error = true;
+      util::error(file_path + ": Unable to open file!");
+      stream.close();
+
+      continue;
+    }
+
+    // if nothing goes wrong, construct a string in-place from
+    // streambuf iterators
+    auto str = std::string{std::istreambuf_iterator<char>(stream),
+        std::istreambuf_iterator<char>()};
+
+    if (!is_valid_utf8(str)) {
+      had_error = true;
+      util::error(file_path + ": File is not valid UTF-8!");
+
+      continue;
+    }
+
+    sources.emplace_back(std::move(path), std::move(str));
   }
 
-  return {""};
+  if (had_error) {
+    return std::nullopt;
+  } else {
+    return sources;
+  }
+}
+
+opt_file_list pipe_reader::read([[maybe_unused]] options &opts) {
+  throw std::logic_error{"Not implemented!"};
 }
