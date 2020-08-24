@@ -24,11 +24,201 @@
 #ifndef CASCADE_AST_DETAIL_DECLARATIONS_HH
 #define CASCADE_AST_DETAIL_DECLARATIONS_HH
 
+#include "cascade/ast/ast_visitor.hh"
+#include "cascade/ast/detail/expressions.hh"
 #include "cascade/ast/detail/nodes.hh"
 #include "cascade/core/lexer.hh"
 
 namespace cascade::ast {
-  //
-}
+  /** @brief Represents a `const` declaration */
+  class const_decl : public declaration {
+    std::string m_name;
+    std::shared_ptr<expression> m_initializer;
+    std::shared_ptr<type> m_type;
+
+  public:
+    /**
+     * @brief Creates a const declaration
+     * @param info Source info for the declaration
+     * @param name The name given to the declaration
+     * @param init The initializer
+     * @param type The type of the declaration
+     */
+    explicit const_decl(core::source_info info, std::string name, std::shared_ptr<expression> init,
+        std::shared_ptr<type> type)
+        : declaration(kind::declaration_const, std::move(info)),
+          m_name(std::move(name)),
+          m_initializer(std::move(init)),
+          m_type(std::move(type)) {}
+
+    /** @brief Gets the name of the declaration */
+    [[nodiscard]] std::string_view name() const { return m_name; }
+
+    /** @brief Gets the expression that initializes the declaration */
+    [[nodiscard]] std::shared_ptr<expression> initializer() const { return m_initializer; }
+
+    /** @brief Gets the type of the declaration */
+    [[nodiscard]] std::shared_ptr<type> type() const { return m_type; }
+
+    /** @brief Accepts a visitor */
+    virtual void accept(ast_visitor &visitor) { return visitor.visit(*this); }
+  };
+
+  /** @brief Represents a `static` declaration */
+  class static_decl : public declaration {
+    std::string m_name;
+    std::shared_ptr<expression> m_initializer;
+    std::shared_ptr<type> m_type;
+
+  public:
+    /**
+     * @brief Creates a static declaration
+     * @param info Source info for the declaration
+     * @param name The name given to the declaration
+     * @param init The initializer
+     * @param type The type of the declaration
+     */
+    explicit static_decl(core::source_info info, std::string name, std::shared_ptr<expression> init,
+        std::shared_ptr<type> type)
+        : declaration(kind::declaration_static, std::move(info)),
+          m_name(std::move(name)),
+          m_initializer(std::move(init)),
+          m_type(std::move(type)) {}
+
+    /** @brief Gets the name of the declaration */
+    [[nodiscard]] std::string_view name() const { return m_name; }
+
+    /** @brief Gets the expression that initializes the declaration */
+    [[nodiscard]] std::shared_ptr<expression> initializer() const { return m_initializer; }
+
+    /** @brief Gets the type of the declaration */
+    [[nodiscard]] std::shared_ptr<type> type() const { return m_type; }
+  };
+
+  /** @brief Represents a single argument declaration for a function */
+  class argument : public declaration {
+    std::string m_name;
+    std::shared_ptr<type> m_type;
+
+  public:
+    explicit argument(core::source_info info, std::string name, std::shared_ptr<type> type)
+        : declaration(kind::declaration_argument, std::move(info)),
+          m_name(std::move(name)),
+          m_type(std::move(type)) {}
+
+    /** @brief Returns the name of the argument */
+    [[nodiscard]] std::string_view name() const { return m_name; }
+
+    /** @brief Returns a pointer to the argument's type signature */
+    [[nodiscard]] std::shared_ptr<type> type() const { return m_type; }
+
+    /** @brief Accepts a visitor */
+    virtual void accept(ast_visitor &visitor) { return visitor.visit(*this); }
+  };
+
+  /** @brief Represents a function */
+  class fn : public declaration {
+    std::string m_name;
+    std::vector<argument> m_args;
+    std::shared_ptr<type> m_return_type;
+    std::shared_ptr<block> m_block;
+
+  public:
+    /**
+     * @brief Creates a function
+     * @param info The source info for the whole function
+     * @param name The name of the function
+     * @param args List of arguments and their type signatures
+     * @param block The body of the function
+     */
+    explicit fn(core::source_info info, std::string name, std::vector<argument> args,
+        std::shared_ptr<type> type, std::shared_ptr<block> block)
+        : declaration(kind::declaration_fn, std::move(info)),
+          m_name(std::move(name)),
+          m_args(std::move(args)),
+          m_return_type(std::move(type)),
+          m_block(std::move(block)) {}
+
+    /** @brief Returns the name of the argument */
+    [[nodiscard]] std::string_view name() const { return m_name; }
+
+    /** @brief Returns a reference to the arguments */
+    [[nodiscard]] const std::vector<argument> &args() const { return m_args; }
+
+    /** @brief Returns a pointer to the argument's type signature */
+    [[nodiscard]] std::shared_ptr<type> type() const { return m_return_type; }
+
+    /** @brief Returns a pointer to the body of the fn */
+    [[nodiscard]] std::shared_ptr<block> body() const { return m_block; }
+
+    /** @brief Accepts a visitor */
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
+  };
+
+  /** @brief Represents a module declaration for a file */
+  class module_decl : public declaration {
+    std::string m_name;
+
+  public:
+    /**
+     * @brief Creates a module
+     * @param info The source info
+     * @param name The full module path
+     */
+    explicit module_decl(core::source_info info, std::string name)
+        : declaration(kind::declaration_module, std::move(info)), m_name(std::move(name)) {}
+
+    /** @brief Returns the module name */
+    [[nodiscard]] std::string_view name() const { return m_name; }
+
+    /** @brief Accepts a visitor */
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
+  };
+
+  /** @brief Represents a module declaration for a file */
+  class import_decl : public declaration {
+    std::string m_name;
+    std::vector<std::string> m_items;
+    std::optional<std::string> m_alias;
+
+  public:
+    /**
+     * @brief Creates a module
+     * @param info The source info
+     * @param name The full module path
+     * @param items The list of items to import (if using `from`)
+     */
+    explicit import_decl(core::source_info info, std::string name, std::vector<std::string> items,
+        std::optional<std::string> alias)
+        : declaration(kind::declaration_import, std::move(info)),
+          m_name(std::move(name)),
+          m_items(std::move(items)),
+          m_alias(std::move(alias)) {}
+
+    /** @brief Returns the module name */
+    [[nodiscard]] std::string_view name() const { return m_name; }
+
+    /** @brief Accepts a visitor */
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
+  };
+
+  /** @brief Represents an exported entity */
+  class export_decl : public declaration {
+    std::shared_ptr<declaration> m_exported;
+
+  public:
+    /**
+     * @brief Create an exported entity
+     * @param info The source information
+     * @param exported The entity being exported
+     */
+    explicit export_decl(core::source_info info, std::shared_ptr<declaration> exported)
+        : declaration(kind::declaration_export, std::move(info)), m_exported(std::move(exported)) {}
+
+    [[nodiscard]] std::shared_ptr<declaration> exported() const { return m_exported; }
+
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
+  };
+} // namespace cascade::ast
 
 #endif

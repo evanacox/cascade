@@ -28,7 +28,7 @@
 #include "cascade/core/lexer.hh"
 
 namespace cascade::ast {
-  //
-}
+  class block : public expression {};
+} // namespace cascade::ast
 
 #endif

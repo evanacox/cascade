@@ -24,12 +24,10 @@
 #ifndef CASCADE_AST_DETAIL_NODES_HH
 #define CASCADE_AST_DETAIL_NODES_HH
 
+#include "cascade/ast/ast_visitor.hh"
 #include "cascade/core/lexer.hh"
 
 namespace cascade::ast {
-  /** @brief Abstract visitor type */
-  class ast_visitor;
-
   /** @brief A type of node */
   enum class kind {
     literal_char,
@@ -42,12 +40,15 @@ namespace cascade::ast {
     type_array,
     type_builtin,
     type_userdef,
+    type_implied,
     declaration_const,
     declaration_static,
     declaration_fn,
     declaration_struct,
     declaration_module,
     declaration_import,
+    declaration_export,
+    declaration_argument,
   };
 
   /** @brief Abstract base node type */
@@ -67,16 +68,12 @@ namespace cascade::ast {
      */
     explicit node(kind type, core::source_info info) : m_info(info), m_type(type) {}
 
-    /**
-     * @brief Accepts a visitor to the node
-     * @param visitor The visitor to accept
-     */
+    /** @brief Accepts a visitor to the node */
     virtual void accept(ast_visitor &visitor) = 0;
 
     /**
      * @brief Returns if the node is of @p type
      * @param type The type to check for
-     * @return If @p type is the token's type
      */
     [[nodiscard]] bool is(kind type) const { return this->m_type == type; }
 
@@ -84,7 +81,6 @@ namespace cascade::ast {
      * @brief Returns if the token is not of @p type, it's effectively
      * an !token.is(type)
      * @param type The type to check against
-     * @return true if @p type doesn't match the token
      */
     [[nodiscard]] bool is_not(kind type) const { return !is(type); }
 
@@ -106,25 +102,15 @@ namespace cascade::ast {
       return false;
     }
 
-    /**
-     * @brief Returns if the node is an expression node
-     * @return If the node is one of the expression types
-     */
+    /** @brief Returns if the node is an expression node */
     [[nodiscard]] virtual bool is_expression() const = 0;
 
-    /**
-     * @brief Returns if the node is a top-level declaration
-     * @return If the node is a top-level decl
-     */
+    /** @brief Returns if the node is a top-level declaration */
     [[nodiscard]] virtual bool is_declaration() const = 0;
 
-    /**
-     * @brief Returns if the node is a statement
-     * @return If the node is a statement
-     */
+    /** @brief Returns if the node is a statement */
     [[nodiscard]] virtual bool is_statement() const = 0;
 
-    /** @brief Virtual destructor */
     virtual ~node(){};
   };
 
@@ -177,6 +163,10 @@ namespace cascade::ast {
     [[nodiscard]] virtual bool is_declaration() const final { return false; }
 
     [[nodiscard]] virtual bool is_statement() const final { return false; }
+
+    // the objects representing types are recursive, a visitor would need to
+    // figure out the type anyway.
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 } // namespace cascade::ast
 

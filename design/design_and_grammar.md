@@ -93,9 +93,10 @@ Types can be a reference or a standard type. References are denoted with a `&`, 
 - *type* := *reference*? *pointer_or_array** (*builtin_type* | *type_name*)
 - *reference* := `&` | `&` `mut`
 - *pointer_or_array* := `*` `mut` | `*` | `[]`
-- *builtin_type* := `bool` | *builtin_signed* | *builtin_unsigned*
-- *builtin_signed* := `i8` | `i16` | `i32` | `i64` | `i128`
-- *builtin_unsigned* := `u8` | `u16` | `u32` | `u64` | `u128`
+- *builtin_type* := `bool` | *builtin_signed* | *builtin_unsigned* | *builtin_fp*
+- *builtin_signed* := `i8` | `i16` | `i32` | `i64` | `i128` | `isize`
+- *builtin_unsigned* := `u8` | `u16` | `u32` | `u64` | `u128` | `usize`
+- *builtin_fp* := `f32` | `f64`
 
 #### References
 References are very similar to the C++ feature of the same name. They are effectively pointers that are guaranteed to be valid pointers at creation, and they cannot be reassigned.

@@ -35,6 +35,9 @@ namespace cascade::ast {
   /** @brief Represents the type of pointer it is (meaning *T vs *mut T) */
   enum class pointer_type : bool { ptr, mut_ptr };
 
+  /** @brief What type of number a builtin is */
+  enum class numeric_type : char { boolean, integer, unsigned_integer, floating_point };
+
   /** @brief Represents a reference type */
   class reference : public type {
     /** @brief The type of reference */
@@ -44,6 +47,12 @@ namespace cascade::ast {
     std::shared_ptr<type> m_type;
 
   public:
+    /**
+     * @brief Creates a reference type
+     * @param info The source info for this reference specifically
+     * @param reftype The type of reference it is
+     * @param held Pointer to the type being referenced
+     */
     explicit reference(core::source_info info, reference_type reftype, std::shared_ptr<type> held)
         : type(kind::type_ptr, std::move(info)), m_reftype(reftype), m_type(std::move(held)) {}
 
@@ -51,13 +60,13 @@ namespace cascade::ast {
      * @brief Returns the type of reference it is
      * @return The type of reference
      */
-    reference_type ref_type() const { return m_reftype; }
+    [[nodiscard]] reference_type ref_type() const { return m_reftype; }
 
     /**
      * @brief Returns the type being referenced by the ref
      * @return The type being referenced
      */
-    std::shared_ptr<type> held() const { return m_type; }
+    [[nodiscard]] std::shared_ptr<type> held() const { return m_type; }
   };
 
   /** @brief Represents a pointer type */
@@ -81,13 +90,108 @@ namespace cascade::ast {
      * @brief Returns the type of pointer it is
      * @return The type of pointer
      */
-    pointer_type ptr_type() const { return m_ptrtype; }
+    [[nodiscard]] pointer_type ptr_type() const { return m_ptrtype; }
 
     /**
-     * @brief Returns the type being referenced by the ref
-     * @return The type being referenced
+     * @brief Returns the type being pointed to
+     * @return The type being pointed to
      */
-    std::shared_ptr<type> held() const { return m_type; }
+    [[nodiscard]] std::shared_ptr<type> held() const { return m_type; }
+  };
+
+  /** @brief Represents an array type */
+  class array : public type {
+    /** @brief The number of elements in the array, if 0 it's not  */
+    std::size_t m_length;
+
+    std::shared_ptr<type> m_type;
+
+  public:
+    /**
+     * @brief Creates the array type
+     * @param info The source info for this array specifically
+     * @param len The length of the array
+     * @param held Pointer to the type being pointed to
+     */
+    explicit array(core::source_info info, std::size_t len, std::shared_ptr<type> held)
+        : type(kind::type_array, std::move(info)), m_length(len), m_type(std::move(held)) {}
+
+    /**
+     * @brief Gets the length of the array, if any
+     * @return The length
+     */
+    [[nodiscard]] std::size_t length() const { return m_length; }
+
+    /**
+     * @brief Sets the length of the array
+     * @param n The new length
+     */
+    void length(std::size_t n) { m_length = n; }
+
+    /**
+     * @brief Returns the type the array members are
+     * @return The type of the array members
+     */
+    [[nodiscard]] std::shared_ptr<type> held() const { return m_type; }
+  };
+
+  /** @brief Represents a builtin type */
+  class builtin : public type {
+    std::size_t m_width;
+
+    numeric_type m_numeric_type;
+
+  public:
+    /**
+     * @brief Creates a builtin type
+     * @param info The source info for the builtin type signature
+     * @param width The bitwise width of the builtin
+     * @param n_type What type of builtin it is
+     */
+    explicit builtin(core::source_info info, std::size_t width, numeric_type n_type)
+        : type(kind::type_builtin, std::move(info)), m_width(width), m_numeric_type(n_type) {}
+
+    /**
+     * @brief Returns the width of the builtin
+     * @return The width
+     */
+    [[nodiscard]] std::size_t width() const { return m_width; }
+
+    /**
+     * @brief Returns what type of number the bits should be interpreted as
+     * @return The type of builtin
+     */
+    [[nodiscard]] numeric_type num_type() const { return m_numeric_type; }
+  };
+
+  /** @brief Represents a UDT */
+  class user_defined : public type {
+    std::string m_name;
+
+  public:
+    /**
+     * @brief Creates a UDT
+     * @param info Source info for the type signature
+     * @param name The name of the UDT
+     */
+    explicit user_defined(core::source_info info, std::string name)
+        : type(kind::type_userdef, std::move(info)), m_name(std::move(name)) {}
+
+    /**
+     * @brief Returns the name of the UDT
+     * @return A string_view to the name
+     */
+    [[nodiscard]] std::string_view name() const { return m_name; }
+  };
+
+  /** @brief Serves as a marker for a type that the user left implied */
+  class implied : public type {
+  public:
+    /**
+     * @brief Creates an implied instance
+     * @param info The source info for the location where the type **would be**.
+     */
+    explicit implied(core::source_info info) : type(kind::type_implied, std::move(info)) {}
   };
 } // namespace cascade::ast
 

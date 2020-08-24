@@ -83,10 +83,10 @@ ap::argument_parser(int argc, const char **argv) : m_argc{argc}, m_argv{argv} {}
 std::optional<options> ap::parse() {
   auto default_triple = llvm::sys::getDefaultTargetTriple();
 
-  cxxopts::Options console_options(m_argv[0], "Compiler for the Cascade language");
+  cxxopts::Options console_options(m_argv[0], "Compiler for the Cascade language\n");
 
   console_options.custom_help("[options]");
-  console_options.positional_help("file...");
+  console_options.positional_help("file(s)...\n\nOptions:");
 
   console_options.add_options()
       //

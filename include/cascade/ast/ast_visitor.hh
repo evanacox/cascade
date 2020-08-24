@@ -24,4 +24,32 @@
 #ifndef CASCADE_AST_AST_VISITOR_HH
 #define CASCADE_AST_AST_VISITOR_HH
 
+namespace cascade::ast {
+  class type;
+  class const_decl;
+  class argument;
+  class fn;
+  class module_decl;
+  class import_decl;
+  class export_decl;
+
+#define VISIT(type) virtual void visit(type &) = 0
+
+  /** @brief Abstract AST visitor type */
+  class ast_visitor {
+  public:
+    VISIT(type);
+    VISIT(const_decl);
+    VISIT(argument);
+    VISIT(fn);
+    VISIT(module_decl);
+    VISIT(import_decl);
+    VISIT(export_decl);
+
+    virtual ~ast_visitor() {}
+  };
+
+#undef VISIT
+} // namespace cascade::ast
+
 #endif
