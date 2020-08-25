@@ -49,9 +49,7 @@ static std::unordered_map<error_code, std::string_view> notes{
 std::string_view errors::error_message_from_code(error_code code) { return errs[code]; }
 
 std::optional<std::string_view> errors::error_note_from_code(error_code code) {
-  if (notes.find(code) == notes.end()) {
-    return std::nullopt;
-  }
+  auto result = notes[code];
 
-  return notes[code];
+  return result == "" ? std::nullopt : std::make_optional(result);
 }
