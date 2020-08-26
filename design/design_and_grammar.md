@@ -323,9 +323,9 @@ is executed, at which case they exit and execution continues.
 mut has_failed = false;
 
 loop {
-    x = returns_true_if_fails();
+    has_failed = returns_true_if_fails();
 
-    if x {
+    if has_failed {
         break;
     }
 }
@@ -409,7 +409,8 @@ information.
 - *assert_stmt* := `assert` *expression* `;`
 
 #### Expression Statement
-Expression statements are simply expressions that have their return value discarded.
+Expression statements are simply expressions that have their return value discarded. Expressions with blocks (`{}`) do not have
+semicolons.
 
 ```
 vector.push(5);
@@ -419,7 +420,7 @@ if true {
 }
 ```
 
-- *expression_stmt* := (*expression_without_block* `;`) | (*expression_with_block* `;`?)
+- *expression_stmt* := (*expression_without_block* `;`) | (*expression_with_block*)
 
 ## Modules
 Modules are the way that Cascade splits up functions and types. They are Cascade's method of namespacing 
@@ -478,6 +479,7 @@ and are intentionally made to be very flexible.
 - *expression* := *expression_without_block* | *expression_with_block*
 
 - *expression_without_block* := *literal_expr*<br />
+&nbsp;&nbsp;&nbsp;&nbsp;| *identifier_expr*<br />
 &nbsp;&nbsp;&nbsp;&nbsp;| *call_expr*<br />
 &nbsp;&nbsp;&nbsp;&nbsp;| *binary_expr*<br />
 &nbsp;&nbsp;&nbsp;&nbsp;| *unary_expr*<br />
@@ -497,6 +499,11 @@ and are intentionally made to be very flexible.
 Simply a literal of some sort.
 
 - *literal_expr* := *literal*
+
+#### Identifier
+Simply an identifier that could refer to a value, e.g `result` or `x`
+
+- *identifier_expr* := *var_name*
 
 #### Call Expression
 A call to a function (or a functor object)
@@ -636,7 +643,7 @@ let five_plus_five = {
 #### If Expression
 Just a standard `if`. They can be used as expressions, but only if they can evaluate to a value in every possible case. Note: They always have blocks, the `{}`s are not optional as they are in other languages. 
 
-- *if_expr* := `if` *expression* *block_expr* (`else` (*block_expr* | *if_expr*))
+- *if_expr* := `if` *expression* *block_expr* (`else` (*block_expr* | *if_expr*))?
 
 ```
 if condition {

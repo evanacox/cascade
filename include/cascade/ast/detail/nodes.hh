@@ -34,6 +34,7 @@ namespace cascade::ast {
     literal_string,
     literal_number,
     literal_bool,
+    literal_float,
     identifier,
     type_ptr,
     type_ref,
@@ -49,6 +50,9 @@ namespace cascade::ast {
     declaration_import,
     declaration_export,
     declaration_argument,
+    expression_call,
+    expression_binary,
+    expression_unary,
   };
 
   /** @brief Abstract base node type */

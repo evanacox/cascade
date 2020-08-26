@@ -27,24 +27,45 @@
 namespace cascade::ast {
   class type;
   class const_decl;
+  class static_decl;
   class argument;
   class fn;
   class module_decl;
   class import_decl;
   class export_decl;
+  class char_literal;
+  class string_literal;
+  class int_literal;
+  class float_literal;
+  class bool_literal;
+  class identifier;
+  class call;
+  class binary;
+  class unary;
 
 #define VISIT(type) virtual void visit(type &) = 0
 
   /** @brief Abstract AST visitor type */
   class ast_visitor {
   public:
+    // I love OO boilerplate, don't you?
     VISIT(type);
     VISIT(const_decl);
+    VISIT(static_decl);
     VISIT(argument);
     VISIT(fn);
     VISIT(module_decl);
     VISIT(import_decl);
     VISIT(export_decl);
+    VISIT(char_literal);
+    VISIT(string_literal);
+    VISIT(int_literal);
+    VISIT(float_literal);
+    VISIT(bool_literal);
+    VISIT(identifier);
+    VISIT(call);
+    VISIT(binary);
+    VISIT(unary);
 
     virtual ~ast_visitor() {}
   };

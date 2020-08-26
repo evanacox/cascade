@@ -26,6 +26,7 @@
 
 #include "cascade/ast/detail/declarations.hh"
 #include "cascade/ast/detail/expressions.hh"
+#include "cascade/ast/detail/literals.hh"
 #include "cascade/ast/detail/nodes.hh"
 #include "cascade/ast/detail/statements.hh"
 

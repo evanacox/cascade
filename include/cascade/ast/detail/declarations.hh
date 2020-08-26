@@ -93,6 +93,8 @@ namespace cascade::ast {
 
     /** @brief Gets the type of the declaration */
     [[nodiscard]] std::shared_ptr<type> type() const { return m_type; }
+
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
   /** @brief Represents a single argument declaration for a function */
@@ -112,8 +114,7 @@ namespace cascade::ast {
     /** @brief Returns a pointer to the argument's type signature */
     [[nodiscard]] std::shared_ptr<type> type() const { return m_type; }
 
-    /** @brief Accepts a visitor */
-    virtual void accept(ast_visitor &visitor) { return visitor.visit(*this); }
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
   /** @brief Represents a function */
@@ -151,7 +152,6 @@ namespace cascade::ast {
     /** @brief Returns a pointer to the body of the fn */
     [[nodiscard]] std::shared_ptr<block> body() const { return m_block; }
 
-    /** @brief Accepts a visitor */
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
@@ -171,7 +171,6 @@ namespace cascade::ast {
     /** @brief Returns the module name */
     [[nodiscard]] std::string_view name() const { return m_name; }
 
-    /** @brief Accepts a visitor */
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
@@ -195,10 +194,15 @@ namespace cascade::ast {
           m_items(std::move(items)),
           m_alias(std::move(alias)) {}
 
-    /** @brief Returns the module name */
+    /** @brief Returns the module name being imported */
     [[nodiscard]] std::string_view name() const { return m_name; }
 
-    /** @brief Accepts a visitor */
+    /** @brief Returns the items being imported */
+    [[nodiscard]] const std::vector<std::string> &items() const { return m_items; }
+
+    /** @brief Returns the alias of the imported module, if there is one */
+    [[nodiscard]] std::optional<std::string_view> alias() const { return m_alias; }
+
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
@@ -215,6 +219,7 @@ namespace cascade::ast {
     explicit export_decl(core::source_info info, std::shared_ptr<declaration> exported)
         : declaration(kind::declaration_export, std::move(info)), m_exported(std::move(exported)) {}
 
+    /** @brief Returns a pointer to the item being exported */
     [[nodiscard]] std::shared_ptr<declaration> exported() const { return m_exported; }
 
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
