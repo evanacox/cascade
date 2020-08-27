@@ -342,6 +342,8 @@ namespace cascade::core {
   public:
     using register_fn = std::function<void(std::unique_ptr<errors::error>)>;
 
+    using return_type = std::vector<token>;
+
     /**
      * @brief Creates the lexer
      * @param source The source code
@@ -356,7 +358,7 @@ namespace cascade::core {
      * @brief (eagerly) lexes the source string given
      * @return A list of tokens
      */
-    std::vector<token> lex();
+    return_type lex();
 
     /** @brief Implemented as default */
     ~lexer();

@@ -42,6 +42,10 @@ namespace cascade::ast {
   class call;
   class binary;
   class unary;
+  class field_access;
+  class index;
+  class if_else;
+  class struct_init;
 
 #define VISIT(type) virtual void visit(type &) = 0
 
@@ -66,6 +70,10 @@ namespace cascade::ast {
     VISIT(call);
     VISIT(binary);
     VISIT(unary);
+    VISIT(field_access);
+    VISIT(index);
+    VISIT(if_else);
+    VISIT(struct_init);
 
     virtual ~ast_visitor() {}
   };

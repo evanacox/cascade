@@ -22,6 +22,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "cascade/util/logging.hh"
+#include "cascade/ast/ast_visitor.hh"
 #include "cascade/errors/error_lookup.hh"
 #include "cascade/errors/error_visitor.hh"
 #include "cascade/util/keywords.hh"

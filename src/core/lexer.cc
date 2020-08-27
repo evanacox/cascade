@@ -332,8 +332,8 @@ std::optional<token> lexer::impl::consume_identifier() {
       util::is_kind(full) ? util::kind_from_string(full) : token::kind::identifier, full);
 }
 
-std::vector<token> lexer::impl::lex() {
-  std::vector<token> tokens;
+lexer::return_type lexer::impl::lex() {
+  lexer::return_type tokens;
 
   while (!is_at_end()) {
     // chew through any whitespace

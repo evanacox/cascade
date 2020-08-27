@@ -24,6 +24,8 @@
 #ifndef CASCADE_CORE_PARSER_HH
 #define CASCADE_CORE_PARSER_HH
 
+#include "cascade/ast/ast.hh"
+#include "cascade/core/lexer.hh"
 #include <cstddef>
 #include <memory>
 #include <string_view>
@@ -38,11 +40,16 @@ namespace cascade::core {
     std::unique_ptr<impl> m_impl;
 
   public:
+    using return_type = ast::program;
+
     /**
      * @brief Creates a parser
      * @param source string_view to the entire source code for a file
      */
-    explicit parser(std::string_view source);
+    explicit parser(lexer::return_type source);
+
+    /** @brief Parses the program */
+    [[nodiscard]] return_type parse();
   };
 } // namespace cascade::core
 

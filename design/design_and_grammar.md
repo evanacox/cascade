@@ -495,6 +495,27 @@ and are intentionally made to be very flexible.
 &nbsp;&nbsp;&nbsp;&nbsp;| *if_expr*<br />
 &nbsp;&nbsp;&nbsp;&nbsp;| *match_expr*<br />
 
+#### Precedence
+
+<!-- This was generated, not hand-written -->
+| Operator                                                                 	| Description                                                                                                                    	| Associativity 	|
+|--------------------------------------------------------------------------	|--------------------------------------------------------------------------------------------------------------------------------	|---------------	|
+| ( *expr* )<br>{ *exprs* }                                                	| Grouping                                                                                                                       	|               	|
+| *type*(*args*)<br>*expr*()<br>*expr*[]<br>a.*name*<br>a.*method*(*args*) 	| Constructors<br>Function Calls<br>Index Access<br>Field Access<br>Method Call                                                  	| Left-to-right 	|
+| ~a<br>*a<br>&a<br>@a<br>+a -a<br>clone a                                 	| Logical and Bitwise NOT<br>Dereference<br>Get Reference<br>Address-of<br>Unary Plus / Minus<br>Clone                           	| Right-to-left 	|
+| a * b<br>a / b<br>a % b                                                  	| Multiplication<br>Division<br>Remainder                                                                                        	| Left-to-right 	|
+| a + b<br>a - b                                                           	| Addition<br>Subtraction                                                                                                        	| Left-to-right 	|
+| <<<br>>>                                                                 	| Bitwise Left Shift<br>Bitwise Right Shift                                                                                      	| Left-to-right 	|
+| &                                                                        	| Bitwise AND                                                                                                                    	| Left-to-right 	|
+| ^                                                                        	| Bitwise XOR                                                                                                                    	| Left-to-right 	|
+| \|                                                                       	| Bitwise OR                                                                                                                     	| Left-to-right 	|
+| < <=<br>> >=<br>== !=                                                    	| Less-than, Less-than-or-equal<br>Greater-than, Greater-than-or-equal<br>Equals, does not equal                                 	| Left-to-right 	|
+| not                                                                      	| Logical NOT                                                                                                                    	| Right-to-left 	|
+| and                                                                      	| Logical AND                                                                                                                    	| Left-to-right 	|
+| xor                                                                      	| Logical XOR                                                                                                                    	| Left-to-right 	|
+| or                                                                       	| Logical OR                                                                                                                     	| Left-to-right 	|
+| if<br>match                                                              	| If expressions<br>Match expressions                                                                                            	|               	|
+| =<br>+= -=<br>*= /= %=<br><<= >>=<br>&= \|= ^=                           	| Assignment<br>Compound assignment (+-)<br>Compound assignment (*/%)<br>Compound assignment (<<>>)<br>Compound Assignment(&\|^) 	| Right-to-left 	|
 #### Literal Expression
 Simply a literal of some sort.
 

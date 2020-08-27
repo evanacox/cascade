@@ -94,6 +94,100 @@ namespace cascade::ast {
 
     [[nodiscard]] std::shared_ptr<expression> rhs() const { return m_rhs; }
   };
+
+  class field_access : public expression {
+    std::shared_ptr<expression> m_accessed;
+    std::string m_field;
+
+  public:
+    explicit field_access(
+        core::source_info info, std::shared_ptr<expression> accessed, std::string field)
+        : expression(kind::expression_field_access, std::move(info)),
+          m_accessed(std::move(accessed)),
+          m_field(std::move(field)) {}
+
+    [[nodiscard]] std::shared_ptr<expression> accessed() const { return m_accessed; }
+
+    [[nodiscard]] std::string_view field_name() const { return m_field; }
+
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
+  };
+
+  class index : public expression {
+    std::shared_ptr<expression> m_array;
+    std::shared_ptr<expression> m_index;
+
+  public:
+    explicit index(
+        core::source_info info, std::shared_ptr<expression> array, std::shared_ptr<expression> idx)
+        : expression(kind::expression_index, std::move(info)),
+          m_array(std::move(array)),
+          m_index(std::move(idx)) {}
+
+    [[nodiscard]] std::shared_ptr<expression> array() const { return m_array; }
+
+    [[nodiscard]] std::shared_ptr<expression> idx() const { return m_index; }
+
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
+  };
+
+  class if_else : public expression {
+    std::shared_ptr<expression> m_condition;
+    std::shared_ptr<expression> m_true;
+    std::shared_ptr<expression> m_false;
+
+  public:
+    explicit if_else(core::source_info info, std::shared_ptr<expression> cond,
+        std::shared_ptr<expression> true_clause, std::shared_ptr<expression> else_clause)
+        : expression(kind::expression_if_else, std::move(info)),
+          m_condition(std::move(cond)),
+          m_true(std::move(true_clause)),
+          m_false(std::move(else_clause)) {}
+
+    [[nodiscard]] std::shared_ptr<expression> condition() const { return m_condition; }
+
+    [[nodiscard]] std::shared_ptr<expression> true_clause() const { return m_true; }
+
+    [[nodiscard]] std::shared_ptr<expression> else_clause() const { return m_false; }
+
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
+  };
+
+  class block : public expression {
+    std::vector<std::shared_ptr<statement>> m_statements;
+
+  public:
+    explicit block(core::source_info info, std::vector<std::shared_ptr<statement>> stmts)
+        : expression(kind::expression_block, std::move(info)), m_statements(std::move(stmts)) {}
+
+    [[nodiscard]] const std::vector<std::shared_ptr<statement>> &statements() const {
+      return m_statements;
+    }
+  };
+
+  class struct_init : public expression {
+  public:
+    struct pair {
+      std::string field_name;
+      std::shared_ptr<expression> value;
+    };
+
+  private:
+    std::string m_struct_name;
+    std::vector<pair> m_init;
+
+  public:
+    explicit struct_init(core::source_info info, std::string name, std::vector<pair> inits)
+        : expression(kind::expression_struct, std::move(info)),
+          m_struct_name(std::move(name)),
+          m_init(std::move(inits)) {}
+
+    [[nodiscard]] const std::vector<pair> &pairs() const { return m_init; }
+
+    [[nodiscard]] std::string_view name() const { return m_struct_name; }
+
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
+  };
 } // namespace cascade::ast
 
 #endif

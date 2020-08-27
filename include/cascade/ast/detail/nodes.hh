@@ -53,6 +53,12 @@ namespace cascade::ast {
     expression_call,
     expression_binary,
     expression_unary,
+    expression_field_access,
+    expression_index,
+    expression_if_else,
+    expression_block,
+    expression_array,
+    expression_struct,
   };
 
   /** @brief Abstract base node type */

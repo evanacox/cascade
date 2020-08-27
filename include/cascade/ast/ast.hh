@@ -30,4 +30,13 @@
 #include "cascade/ast/detail/nodes.hh"
 #include "cascade/ast/detail/statements.hh"
 
+namespace cascade::ast {
+  class program {
+    std::vector<std::shared_ptr<declaration>> declarations;
+
+  public:
+    void add_declaration(std::shared_ptr<declaration> decl);
+  };
+} // namespace cascade::ast
+
 #endif
