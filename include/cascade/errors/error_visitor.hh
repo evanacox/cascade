@@ -25,14 +25,9 @@
 #define CASCADE_ERRORS_ERROR_VISITOR_HH
 
 namespace cascade::errors {
-  /** @brief Forward declaration for error */
   class error;
-
-  /** @brief Forward declaration for token_error */
   class token_error;
-
-  /** @brief Forward declaration for node_error */
-  class node_error;
+  class ast_error;
 
   /** @brief Represents a visitor for errors */
   class error_visitor {
@@ -47,7 +42,7 @@ namespace cascade::errors {
      * @brief Visits a node error
      * @param node_err The node to visit
      */
-    virtual void visit(node_error &node_err) = 0;
+    virtual void visit(ast_error &node_err) = 0;
 
     virtual ~error_visitor() {}
   };

@@ -23,6 +23,7 @@
 
 #include "cascade/driver.hh"
 #include "cascade/core/lexer.hh"
+#include "cascade/core/parser.hh"
 #include "cascade/errors/error.hh"
 #include "cascade/util/logging.hh"
 #include "cascade/util/source_reader.hh"
@@ -36,29 +37,42 @@ namespace fs = std::filesystem;
 
 driver::driver(int argc, const char **argv) : m_arg_parser(argc, argv) {}
 
-bool driver::compile(fs::path path, std::string_view source) {
+std::optional<ast::program> driver::parse(stdpath path, std::string_view source) {
   std::vector<std::unique_ptr<errors::error>> errs;
-  util::logger logger{source};
+  util::logger logger(source);
 
-  core::lexer lexer(source, path, [&errs](std::unique_ptr<errors::error> err) {
-    //
+  auto report_err = [&errs](std::unique_ptr<errors::error> err) {
+    // errors get passed in by the class calling this lambda
     errs.push_back(std::move(err));
-  });
+  };
 
-  auto tokens = lexer.lex();
+  auto tokens = core::lexer(source, path, report_err).lex();
 
-  using err_ptr = std::unique_ptr<errors::error>;
-  using moveit = std::move_iterator<std::vector<err_ptr>::iterator>;
+#ifndef NDEBUG
+  util::debug_print(tokens);
 
-  // can't use a normal for..in with non-copyable objects
-  std::for_each(moveit(errs.begin()), moveit(errs.end()), [&logger](err_ptr err) {
-    // logger takes ownership, error shouldn't be needed later
-    logger.error(std::move(err));
-  });
+  auto parsed = core::parser(tokens, report_err).parse();
+#else
+  auto parsed = core::parser(std::move(tokens), report_err).parse();
+#endif
 
-  util::debug_print(std::move(tokens));
+  if (errs.size() != 0) {
+    using err_ptr = std::unique_ptr<errors::error>;
+    using moveit = std::move_iterator<std::vector<err_ptr>::iterator>;
 
-  return true;
+    // can't use a normal for..in with non-copyable objects
+    std::for_each(moveit(errs.begin()), moveit(errs.end()), [&logger](err_ptr err) {
+      // aren't move iterators beautiful?
+      logger.error(std::move(err));
+    });
+  }
+
+  return (errs.size() == 0) ? std::make_optional(std::move(parsed)) : std::nullopt;
+}
+
+void driver::compile(stdpath path, ast::program prog) {
+  (void)path;
+  (void)prog;
 }
 
 int driver::run() {
@@ -80,9 +94,20 @@ int driver::run() {
     return -1;
   }
 
+  std::vector<ast::program> programs;
+  auto has_failed = false;
+
   for (auto &file : sources.value()) {
-    (void)compile(file.path(), file.source());
+    auto parsed = parse(file.path(), file.source());
+
+    if (parsed) {
+      util::debug_print(parsed.value());
+
+      programs.push_back(std::move(parsed.value()));
+    } else {
+      has_failed = true;
+    }
   }
 
-  return 0;
+  return has_failed;
 }

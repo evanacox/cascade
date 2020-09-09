@@ -33,8 +33,8 @@ namespace cascade::ast {
   /** @brief Represents a `const` declaration */
   class const_decl : public declaration {
     std::string m_name;
-    std::shared_ptr<expression> m_initializer;
-    std::shared_ptr<type> m_type;
+    std::unique_ptr<expression> m_initializer;
+    std::unique_ptr<type_base> m_type;
 
   public:
     /**
@@ -44,8 +44,8 @@ namespace cascade::ast {
      * @param init The initializer
      * @param type The type of the declaration
      */
-    explicit const_decl(core::source_info info, std::string name, std::shared_ptr<expression> init,
-        std::shared_ptr<type> type)
+    explicit const_decl(core::source_info info, std::string name, std::unique_ptr<expression> init,
+        std::unique_ptr<type_base> type)
         : declaration(kind::declaration_const, std::move(info)),
           m_name(std::move(name)),
           m_initializer(std::move(init)),
@@ -55,10 +55,10 @@ namespace cascade::ast {
     [[nodiscard]] std::string_view name() const { return m_name; }
 
     /** @brief Gets the expression that initializes the declaration */
-    [[nodiscard]] std::shared_ptr<expression> initializer() const { return m_initializer; }
+    [[nodiscard]] expression &initializer() const { return *m_initializer; }
 
     /** @brief Gets the type of the declaration */
-    [[nodiscard]] std::shared_ptr<type> type() const { return m_type; }
+    [[nodiscard]] type_base &type() const { return *m_type; }
 
     /** @brief Accepts a visitor */
     virtual void accept(ast_visitor &visitor) { return visitor.visit(*this); }
@@ -67,8 +67,8 @@ namespace cascade::ast {
   /** @brief Represents a `static` declaration */
   class static_decl : public declaration {
     std::string m_name;
-    std::shared_ptr<expression> m_initializer;
-    std::shared_ptr<type> m_type;
+    std::unique_ptr<expression> m_initializer;
+    std::unique_ptr<type_base> m_type;
 
   public:
     /**
@@ -78,8 +78,8 @@ namespace cascade::ast {
      * @param init The initializer
      * @param type The type of the declaration
      */
-    explicit static_decl(core::source_info info, std::string name, std::shared_ptr<expression> init,
-        std::shared_ptr<type> type)
+    explicit static_decl(core::source_info info, std::string name, std::unique_ptr<expression> init,
+        std::unique_ptr<type_base> type)
         : declaration(kind::declaration_static, std::move(info)),
           m_name(std::move(name)),
           m_initializer(std::move(init)),
@@ -89,10 +89,10 @@ namespace cascade::ast {
     [[nodiscard]] std::string_view name() const { return m_name; }
 
     /** @brief Gets the expression that initializes the declaration */
-    [[nodiscard]] std::shared_ptr<expression> initializer() const { return m_initializer; }
+    [[nodiscard]] expression &initializer() const { return *m_initializer; }
 
     /** @brief Gets the type of the declaration */
-    [[nodiscard]] std::shared_ptr<type> type() const { return m_type; }
+    [[nodiscard]] type_base &type() const { return *m_type; }
 
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
@@ -100,10 +100,10 @@ namespace cascade::ast {
   /** @brief Represents a single argument declaration for a function */
   class argument : public declaration {
     std::string m_name;
-    std::shared_ptr<type> m_type;
+    std::unique_ptr<type_base> m_type;
 
   public:
-    explicit argument(core::source_info info, std::string name, std::shared_ptr<type> type)
+    explicit argument(core::source_info info, std::string name, std::unique_ptr<type_base> type)
         : declaration(kind::declaration_argument, std::move(info)),
           m_name(std::move(name)),
           m_type(std::move(type)) {}
@@ -112,7 +112,7 @@ namespace cascade::ast {
     [[nodiscard]] std::string_view name() const { return m_name; }
 
     /** @brief Returns a pointer to the argument's type signature */
-    [[nodiscard]] std::shared_ptr<type> type() const { return m_type; }
+    [[nodiscard]] type_base &type() const { return *m_type; }
 
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
@@ -121,8 +121,8 @@ namespace cascade::ast {
   class fn : public declaration {
     std::string m_name;
     std::vector<argument> m_args;
-    std::shared_ptr<type> m_return_type;
-    std::shared_ptr<block> m_block;
+    std::unique_ptr<type_base> m_return_type;
+    std::unique_ptr<expression> m_block;
 
   public:
     /**
@@ -133,7 +133,7 @@ namespace cascade::ast {
      * @param block The body of the function
      */
     explicit fn(core::source_info info, std::string name, std::vector<argument> args,
-        std::shared_ptr<type> type, std::shared_ptr<block> block)
+        std::unique_ptr<type_base> type, std::unique_ptr<expression> block)
         : declaration(kind::declaration_fn, std::move(info)),
           m_name(std::move(name)),
           m_args(std::move(args)),
@@ -144,13 +144,13 @@ namespace cascade::ast {
     [[nodiscard]] std::string_view name() const { return m_name; }
 
     /** @brief Returns a reference to the arguments */
-    [[nodiscard]] const std::vector<argument> &args() const { return m_args; }
+    [[nodiscard]] std::vector<argument> &args() { return m_args; }
 
     /** @brief Returns a pointer to the argument's type signature */
-    [[nodiscard]] std::shared_ptr<type> type() const { return m_return_type; }
+    [[nodiscard]] type_base &type() const { return *m_return_type; }
 
     /** @brief Returns a pointer to the body of the fn */
-    [[nodiscard]] std::shared_ptr<block> body() const { return m_block; }
+    [[nodiscard]] expression &body() const { return *m_block; }
 
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
@@ -208,7 +208,7 @@ namespace cascade::ast {
 
   /** @brief Represents an exported entity */
   class export_decl : public declaration {
-    std::shared_ptr<declaration> m_exported;
+    std::unique_ptr<declaration> m_exported;
 
   public:
     /**
@@ -216,11 +216,36 @@ namespace cascade::ast {
      * @param info The source information
      * @param exported The entity being exported
      */
-    explicit export_decl(core::source_info info, std::shared_ptr<declaration> exported)
+    explicit export_decl(core::source_info info, std::unique_ptr<declaration> exported)
         : declaration(kind::declaration_export, std::move(info)), m_exported(std::move(exported)) {}
 
     /** @brief Returns a pointer to the item being exported */
-    [[nodiscard]] std::shared_ptr<declaration> exported() const { return m_exported; }
+    [[nodiscard]] declaration &exported() const { return *m_exported; }
+
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
+  };
+
+  class type_decl : public declaration {
+    std::unique_ptr<type_base> m_type;
+    std::string m_name;
+
+  public:
+    /**
+     * @brief Create a type declaration
+     * @param info The source information
+     * @param type The type being aliased
+     * @param name The name of the alias
+     */
+    explicit type_decl(core::source_info info, std::unique_ptr<type_base> type, std::string name)
+        : declaration(kind::declaration_export, std::move(info)),
+          m_type(std::move(type)),
+          m_name(std::move(name)) {}
+
+    /** @brief Returns a pointer to the item being exported */
+    [[nodiscard]] type_base &type() const { return *m_type; }
+
+    /** @brief Returns a string_view to the alias given to the type */
+    [[nodiscard]] std::string_view name() const { return m_name; }
 
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };

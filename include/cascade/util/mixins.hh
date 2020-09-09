@@ -35,6 +35,10 @@ namespace cascade::util {
     noncopyable(const noncopyable &) = delete;
 
     noncopyable &operator=(const noncopyable &) = delete;
+
+    noncopyable(noncopyable &&) = default;
+
+    noncopyable &operator=(noncopyable &&) = default;
   };
 
   /** @brief Disables moving on an object */
@@ -47,6 +51,10 @@ namespace cascade::util {
     nonmovable(nonmovable &&) = delete;
 
     nonmovable &operator=(nonmovable &&) = delete;
+
+    nonmovable(const nonmovable &) = default;
+
+    nonmovable &operator=(const nonmovable &) = default;
   };
 } // namespace cascade::util
 

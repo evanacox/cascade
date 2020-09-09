@@ -26,9 +26,11 @@
 
 #include "cascade/ast/ast.hh"
 #include "cascade/core/lexer.hh"
+#include "cascade/errors/error.hh"
 #include <cstddef>
 #include <memory>
 #include <string_view>
+#include <utility>
 
 namespace cascade::core {
   /** @brief Handles parsing a single file */
@@ -45,11 +47,16 @@ namespace cascade::core {
     /**
      * @brief Creates a parser
      * @param source string_view to the entire source code for a file
+     * @param report The function that gets called on any errors
      */
-    explicit parser(lexer::return_type source);
+    explicit parser(
+        lexer::return_type source, std::function<void(std::unique_ptr<errors::error>)> report);
 
     /** @brief Parses the program */
     [[nodiscard]] return_type parse();
+
+    /** @brief Explicit destructor due to impl class */
+    ~parser();
   };
 } // namespace cascade::core
 

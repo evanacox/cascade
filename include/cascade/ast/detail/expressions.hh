@@ -25,6 +25,7 @@
 #define CASCADE_AST_DETAIL_EXPRESSIONS_HH
 
 #include "cascade/ast/detail/nodes.hh"
+#include "cascade/ast/detail/types.hh"
 #include "cascade/core/lexer.hh"
 
 namespace cascade::ast {
@@ -41,31 +42,31 @@ namespace cascade::ast {
   };
 
   class call : public expression {
-    std::shared_ptr<expression> m_callee;
-    std::vector<std::shared_ptr<expression>> m_args;
+    std::unique_ptr<expression> m_callee;
+    std::vector<std::unique_ptr<expression>> m_args;
 
   public:
-    explicit call(core::source_info info, std::shared_ptr<expression> callee,
-        std::vector<std::shared_ptr<expression>> args)
+    explicit call(core::source_info info, std::unique_ptr<expression> callee,
+        std::vector<std::unique_ptr<expression>> args)
         : expression(kind::expression_call, std::move(info)),
           m_callee(std::move(callee)),
           m_args(std::move(args)) {}
 
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
 
-    [[nodiscard]] std::shared_ptr<expression> callee() const { return m_callee; }
+    [[nodiscard]] expression &callee() const { return *m_callee; }
 
-    [[nodiscard]] const std::vector<std::shared_ptr<expression>> &args() const { return m_args; }
+    [[nodiscard]] const std::vector<std::unique_ptr<expression>> &args() const { return m_args; }
   };
 
   class binary : public expression {
     core::token::kind m_op;
-    std::shared_ptr<expression> m_lhs;
-    std::shared_ptr<expression> m_rhs;
+    std::unique_ptr<expression> m_lhs;
+    std::unique_ptr<expression> m_rhs;
 
   public:
-    explicit binary(core::source_info info, core::token::kind op, std::shared_ptr<expression> lhs,
-        std::shared_ptr<expression> rhs)
+    explicit binary(core::source_info info, core::token::kind op, std::unique_ptr<expression> lhs,
+        std::unique_ptr<expression> rhs)
         : expression(kind::expression_binary, std::move(info)),
           m_op(op),
           m_lhs(std::move(lhs)),
@@ -75,38 +76,38 @@ namespace cascade::ast {
 
     [[nodiscard]] core::token::kind op() const { return m_op; }
 
-    [[nodiscard]] std::shared_ptr<expression> lhs() const { return m_lhs; }
+    [[nodiscard]] expression &lhs() const { return *m_lhs; }
 
-    [[nodiscard]] std::shared_ptr<expression> rhs() const { return m_rhs; }
+    [[nodiscard]] expression &rhs() const { return *m_rhs; }
   };
 
   class unary : public expression {
     core::token::kind m_op;
-    std::shared_ptr<expression> m_rhs;
+    std::unique_ptr<expression> m_rhs;
 
   public:
-    explicit unary(core::source_info info, core::token::kind op, std::shared_ptr<expression> rhs)
+    explicit unary(core::source_info info, core::token::kind op, std::unique_ptr<expression> rhs)
         : expression(kind::expression_unary, std::move(info)), m_op(op), m_rhs(std::move(rhs)) {}
 
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
 
     [[nodiscard]] core::token::kind op() const { return m_op; }
 
-    [[nodiscard]] std::shared_ptr<expression> rhs() const { return m_rhs; }
+    [[nodiscard]] expression &rhs() const { return *m_rhs; }
   };
 
   class field_access : public expression {
-    std::shared_ptr<expression> m_accessed;
+    std::unique_ptr<expression> m_accessed;
     std::string m_field;
 
   public:
     explicit field_access(
-        core::source_info info, std::shared_ptr<expression> accessed, std::string field)
+        core::source_info info, std::unique_ptr<expression> accessed, std::string field)
         : expression(kind::expression_field_access, std::move(info)),
           m_accessed(std::move(accessed)),
           m_field(std::move(field)) {}
 
-    [[nodiscard]] std::shared_ptr<expression> accessed() const { return m_accessed; }
+    [[nodiscard]] expression &accessed() const { return *m_accessed; }
 
     [[nodiscard]] std::string_view field_name() const { return m_field; }
 
@@ -114,62 +115,78 @@ namespace cascade::ast {
   };
 
   class index : public expression {
-    std::shared_ptr<expression> m_array;
-    std::shared_ptr<expression> m_index;
+    std::unique_ptr<expression> m_array;
+    std::unique_ptr<expression> m_index;
 
   public:
     explicit index(
-        core::source_info info, std::shared_ptr<expression> array, std::shared_ptr<expression> idx)
+        core::source_info info, std::unique_ptr<expression> array, std::unique_ptr<expression> idx)
         : expression(kind::expression_index, std::move(info)),
           m_array(std::move(array)),
           m_index(std::move(idx)) {}
 
-    [[nodiscard]] std::shared_ptr<expression> array() const { return m_array; }
+    [[nodiscard]] expression &array() const { return *m_array; }
 
-    [[nodiscard]] std::shared_ptr<expression> idx() const { return m_index; }
+    [[nodiscard]] expression &idx() const { return *m_index; }
 
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
   class if_else : public expression {
-    std::shared_ptr<expression> m_condition;
-    std::shared_ptr<expression> m_true;
-    std::shared_ptr<expression> m_false;
+    std::unique_ptr<expression> m_condition;
+    std::unique_ptr<expression> m_true;
+    std::optional<std::unique_ptr<expression>> m_false;
 
   public:
-    explicit if_else(core::source_info info, std::shared_ptr<expression> cond,
-        std::shared_ptr<expression> true_clause, std::shared_ptr<expression> else_clause)
+    explicit if_else(core::source_info info, std::unique_ptr<expression> cond,
+        std::unique_ptr<expression> true_clause,
+        std::optional<std::unique_ptr<expression>> else_clause = std::nullopt)
         : expression(kind::expression_if_else, std::move(info)),
           m_condition(std::move(cond)),
           m_true(std::move(true_clause)),
           m_false(std::move(else_clause)) {}
 
-    [[nodiscard]] std::shared_ptr<expression> condition() const { return m_condition; }
+    [[nodiscard]] expression &condition() const { return *m_condition; }
 
-    [[nodiscard]] std::shared_ptr<expression> true_clause() const { return m_true; }
+    [[nodiscard]] expression &true_clause() const { return *m_true; }
 
-    [[nodiscard]] std::shared_ptr<expression> else_clause() const { return m_false; }
+    [[nodiscard]] std::optional<std::reference_wrapper<expression>> else_clause() const {
+      if (m_false) {
+        return *m_false.value();
+      }
+
+      return std::nullopt;
+    }
 
     virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
   class block : public expression {
-    std::vector<std::shared_ptr<statement>> m_statements;
+    std::vector<std::unique_ptr<statement>> m_statements;
+
+    std::unique_ptr<type_base> m_return_type;
 
   public:
-    explicit block(core::source_info info, std::vector<std::shared_ptr<statement>> stmts)
-        : expression(kind::expression_block, std::move(info)), m_statements(std::move(stmts)) {}
+    explicit block(core::source_info info, std::vector<std::unique_ptr<statement>> stmts,
+        std::unique_ptr<type_base> type)
+        : expression(kind::expression_block, std::move(info)),
+          m_statements(std::move(stmts)),
+          m_return_type(std::move(type)) {}
 
-    [[nodiscard]] const std::vector<std::shared_ptr<statement>> &statements() const {
+    [[nodiscard]] const std::vector<std::unique_ptr<statement>> &statements() const {
       return m_statements;
     }
+
+    [[nodiscard]] type_base &type() const { return *m_return_type; }
+
+    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
   class struct_init : public expression {
   public:
     struct pair {
       std::string field_name;
-      std::shared_ptr<expression> value;
+      std::unique_ptr<expression> value;
     };
 
   private:

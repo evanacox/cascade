@@ -24,6 +24,7 @@
 #ifndef CASCADE_UTIL_LOGGING_HH
 #define CASCADE_UTIL_LOGGING_HH
 
+#include "cascade/ast/ast.hh"
 #include "cascade/errors/error.hh"
 #include "cascade/errors/error_visitor.hh"
 #include <memory>
@@ -133,6 +134,18 @@ namespace cascade::util {
    * @param toks The list to print
    */
   void debug_print(std::vector<core::token> toks);
+
+  /**
+   * @brief Pretty-prints an AST node recursively
+   * @param node The node to print
+   */
+  void debug_print(ast::node &node);
+
+  /**
+   * @brief Prints an entire AST
+   * @param prog The program to print
+   */
+  void debug_print(ast::program &prog);
 } // namespace cascade::util
 
 #endif

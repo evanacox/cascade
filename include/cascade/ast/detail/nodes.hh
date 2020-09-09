@@ -42,6 +42,7 @@ namespace cascade::ast {
     type_builtin,
     type_userdef,
     type_implied,
+    type_void,
     declaration_const,
     declaration_static,
     declaration_fn,
@@ -50,6 +51,7 @@ namespace cascade::ast {
     declaration_import,
     declaration_export,
     declaration_argument,
+    declaration_type,
     expression_call,
     expression_binary,
     expression_unary,
@@ -59,6 +61,10 @@ namespace cascade::ast {
     expression_block,
     expression_array,
     expression_struct,
+    statement_expression,
+    statement_let,
+    statement_mut,
+    statement_ret,
   };
 
   /** @brief Abstract base node type */
@@ -80,6 +86,12 @@ namespace cascade::ast {
 
     /** @brief Accepts a visitor to the node */
     virtual void accept(ast_visitor &visitor) = 0;
+
+    /** @brief Returns the node's type */
+    [[nodiscard]] kind raw_kind() const { return m_type; }
+
+    /** @brief Returns a reference to the node's source mapping, for debug purposes */
+    [[nodiscard]] const core::source_info &info() const { return m_info; }
 
     /**
      * @brief Returns if the node is of @p type
@@ -164,9 +176,9 @@ namespace cascade::ast {
   };
 
   /** @brief Tag type for types, defines the is_*() methods */
-  class type : public node {
+  class type_base : public node {
   public:
-    explicit type(kind t, core::source_info info) : node(std::move(t), std::move(info)) {}
+    explicit type_base(kind t, core::source_info info) : node(std::move(t), std::move(info)) {}
 
     [[nodiscard]] virtual bool is_expression() const final { return false; }
 

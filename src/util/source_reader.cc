@@ -34,12 +34,11 @@ using options = file_reader::options;
 namespace fs = std::filesystem;
 
 void detail::normalize(detail::file_source &ref) {
-  ref.m_path =
-      ref.m_path.lexically_normal().lexically_relative(fs::current_path());
+  ref.m_path = ref.m_path.lexically_normal().lexically_relative(fs::current_path());
 
+  // transform CRLF into LF
   ref.m_source.erase(
-      std::remove(ref.m_source.begin(), ref.m_source.end(), '\r'),
-      ref.m_source.end());
+      std::remove(ref.m_source.begin(), ref.m_source.end(), '\r'), ref.m_source.end());
 }
 
 /**
@@ -48,8 +47,7 @@ void detail::normalize(detail::file_source &ref) {
  * @return Whether or not the string is valid UTF-8
  */
 [[nodiscard]] static bool is_valid_utf8(std::string_view str) {
-#pragma message(                                                               \
-    "::is_valid_utf8(std::string_view) not implemented, currently always returns true")
+#pragma message("is_valid_utf8: always returns true!")
 
   (void)str;
 
@@ -93,8 +91,7 @@ opt_file_list file_reader::read(options &opts) {
 
     // if nothing goes wrong, construct a string in-place from
     // streambuf iterators
-    auto str = std::string{std::istreambuf_iterator<char>(stream),
-        std::istreambuf_iterator<char>()};
+    std::string str{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
 
     if (!is_valid_utf8(str)) {
       had_error = true;

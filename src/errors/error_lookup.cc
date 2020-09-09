@@ -36,6 +36,22 @@ static std::unordered_map<error_code, std::string_view> errs{
     {ec::unterminated_char, "unterminated character literal"},
     {ec::unexpected_tok, "unexpected token"},
     {ec::unterminated_str, "unterminated multiline comment"},
+    {ec::number_literal_too_large, "number literal too large"},
+    {ec::unclosed_paren, "expected closing parentheses"},
+    {ec::expected_expression, "expected an expression"},
+    {ec::expected_semi, "expected a semicolon"},
+    {ec::expected_else_after_then, "expected 'else' in if-then expression"},
+    {ec::unexpected_expression, "unexpected expression"},
+    {ec::invalid_char_literal, "more than one character in char literal"},
+    {ec::unmatched_brace, "expected a matching '}'"},
+    {ec::unexpected_end_of_input, "unexpected end of input"},
+    {ec::expected_comma, "expected a comma"},
+    {ec::expected_closing_bracket, "expected a closing square bracket"},
+    {ec::expected_opening_brace, "expected an opening curly brace"},
+    {ec::expected_type, "expected a type"},
+    {ec::expected_identifier, "expected an identifier"},
+    {ec::expected_declaration, "expected a declaration"},
+    {ec::duplicate_module, "file already has a module declaration"},
 };
 
 static std::unordered_map<error_code, std::string_view> notes{
@@ -44,6 +60,13 @@ static std::unordered_map<error_code, std::string_view> notes{
     {ec::unterminated_block_comment, "Did you leave out the terminator?"},
     {ec::unterminated_char, "Did you leave out the terminator?"},
     {ec::unterminated_str, "Did you leave out the terminator?"},
+    {ec::number_literal_too_large, "Number literals are of type 'i32' and must fit inside that."},
+    {ec::expected_semi, "All statements require a ';' after them, unless they end with a '}'."},
+    {ec::expected_else_after_then, "If an 'if' expression has 'then', an 'else' is required."},
+    {ec::invalid_char_literal,
+        "Char literals can only contain a single UTF-8 code point, not a UTF-8 character. If it "
+        "doesn't fit inside one byte, you cannot use it."},
+    {ec::expected_opening_brace, "A block was expected to begin here."},
 };
 
 std::string_view errors::error_message_from_code(error_code code) { return errs[code]; }

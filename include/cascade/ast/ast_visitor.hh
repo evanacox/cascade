@@ -25,7 +25,7 @@
 #define CASCADE_AST_AST_VISITOR_HH
 
 namespace cascade::ast {
-  class type;
+  class type_base;
   class const_decl;
   class static_decl;
   class argument;
@@ -46,6 +46,13 @@ namespace cascade::ast {
   class index;
   class if_else;
   class struct_init;
+  class block;
+  class expression_statement;
+  class let;
+  class mut;
+  class ret;
+  class loop;
+  class type_decl;
 
 #define VISIT(type) virtual void visit(type &) = 0
 
@@ -53,7 +60,7 @@ namespace cascade::ast {
   class ast_visitor {
   public:
     // I love OO boilerplate, don't you?
-    VISIT(type);
+    VISIT(type_base);
     VISIT(const_decl);
     VISIT(static_decl);
     VISIT(argument);
@@ -74,6 +81,13 @@ namespace cascade::ast {
     VISIT(index);
     VISIT(if_else);
     VISIT(struct_init);
+    VISIT(block);
+    VISIT(expression_statement);
+    VISIT(let);
+    VISIT(mut);
+    VISIT(ret);
+    VISIT(loop);
+    VISIT(type_decl);
 
     virtual ~ast_visitor() {}
   };

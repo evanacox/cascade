@@ -24,8 +24,10 @@
 
 #include "cascade/util/argument_parser.hh"
 #include "cascade/util/logging.hh"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
 #include "cxxopts.hpp"
-#include "llvm/Support/Host.h"
+#pragma clang diagnostic pop
 
 using namespace cascade::util;
 
@@ -81,8 +83,6 @@ options::compilation_options(std::vector<std::string> paths, optimization_level 
 ap::argument_parser(int argc, const char **argv) : m_argc{argc}, m_argv{argv} {}
 
 std::optional<options> ap::parse() {
-  auto default_triple = llvm::sys::getDefaultTargetTriple();
-
   cxxopts::Options console_options(m_argv[0], "Compiler for the Cascade language\n");
 
   console_options.custom_help("[options]");
@@ -103,7 +103,7 @@ std::optional<options> ap::parse() {
           cxxopts::value<std::string>()->default_value(default_output))
       //
       ("t,target", "The LLVM target to output for",
-          cxxopts::value<std::string>()->default_value(default_triple))
+          cxxopts::value<std::string>()->default_value("default"))
       //
       ("h,help", "Prints this page")
       //

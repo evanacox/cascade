@@ -47,6 +47,7 @@ static std::unordered_map<std::string_view, token::kind> single_char_symbols{
     {")", token::kind::symbol_closeparen},
     {";", token::kind::symbol_semicolon},
     {",", token::kind::symbol_comma},
+    {"~", token::kind::symbol_tilde},
 };
 
 // symbols that either are 2 characters, or start with the same character as a 2 char one
@@ -82,9 +83,21 @@ static std::unordered_map<std::string_view, token::kind> one_or_two_char_symbols
     {"+=", token::kind::symbol_plusequal},
 };
 
+source_info source_info::from(const source_info &original, std::size_t new_len) {
+  return source_info(
+      original.position(), original.line(), original.column(), new_len, original.path());
+}
+
+source_info source_info::from(const source_info &one, const source_info &two) {
+  return source_info(one.position(), one.line(), one.column(),
+      // needs to include any spaces between the two source_infos
+      (two.position() - one.position()) + two.length(), one.path());
+}
+
 bool token::is_literal() const {
   return type() == kind::literal_bool || type() == kind::literal_char
-         || type() == kind::literal_string || type() == kind::literal_number;
+         || type() == kind::literal_string || type() == kind::literal_number
+         || type() == kind::literal_float;
 }
 
 bool token::is_symbol() const {
@@ -106,6 +119,15 @@ bool token::is_symbol() const {
          || type() == kind::symbol_caretequal || type() == kind::symbol_percentequal
          || type() == kind::symbol_forwardslashequal || type() == kind::symbol_starequal
          || type() == kind::symbol_hyphenequal || type() == kind::symbol_plusequal;
+}
+
+bool token::is_assignment() const {
+  return type() == kind::symbol_equal || type() == kind::symbol_gtgtequal
+         || type() == kind::symbol_ltltequal || type() == kind::symbol_poundequal
+         || type() == kind::symbol_pipeequal || type() == kind::symbol_caretequal
+         || type() == kind::symbol_percentequal || type() == kind::symbol_forwardslashequal
+         || type() == kind::symbol_starequal || type() == kind::symbol_hyphenequal
+         || type() == kind::symbol_plusequal;
 }
 
 /** @brief Implementation of the internal `impl` type */
@@ -195,10 +217,12 @@ class lexer::impl {
    */
   template <char C = '"'>[[nodiscard]] std::optional<token> consume_stringlike() {
     static_assert(C == '"' || C == '\'', "C must be character or string delimiter!");
+    auto kind = (C == '"') ? token::kind::literal_string : token::kind::literal_char;
 
     consume(); // consume first C
 
     while (!is_at_end() && current() != C) {
+      // allow escaping " / '
       if (current() == '\\' && peek() == C) {
         consume(2);
 
@@ -209,29 +233,17 @@ class lexer::impl {
     }
 
     if (is_at_end()) {
-      auto kind = token::kind::literal_string;
-      auto code = ec::unterminated_str;
+      auto code = (C == '"') ? ec::unterminated_str : ec::unterminated_char;
+      auto source = m_source.substr(m_starting_pos, m_pos - m_starting_pos);
 
-      if constexpr (C == '\'') {
-        code = ec::unterminated_char;
-        kind = token::kind::literal_char;
-      }
-
-      create_error(
-          code, create_token(kind, m_source.substr(m_starting_pos, m_pos - m_starting_pos)));
+      create_error(code, create_token(kind, source));
 
       return std::nullopt;
     }
 
     consume(); // consume ending C
 
-    if constexpr (C == '"') {
-      return create_token(
-          token::kind::literal_string, m_source.substr(m_starting_pos, m_pos - m_starting_pos));
-    } else {
-      return create_token(
-          token::kind::literal_char, m_source.substr(m_starting_pos, m_pos - m_starting_pos));
-    }
+    return create_token(kind, m_source.substr(m_starting_pos, m_pos - m_starting_pos));
   }
 
   /**
@@ -317,8 +329,11 @@ std::optional<token> lexer::impl::consume_digits() {
     return std::nullopt;
   }
 
-  return create_token(
-      token::kind::literal_number, m_source.substr(m_starting_pos, m_pos - m_starting_pos));
+  auto raw = m_source.substr(m_starting_pos, m_pos - m_starting_pos);
+  auto lit_type = (raw.find('.') != std::string_view::npos) ? token::kind::literal_float
+                                                            : token::kind::literal_number;
+
+  return create_token(lit_type, raw);
 }
 
 std::optional<token> lexer::impl::consume_identifier() {
@@ -390,6 +405,34 @@ lexer::return_type lexer::impl::lex() {
     // handle keywords / identifiers
     else if (std::isalpha(current()) || current() == '_') {
       tokens.emplace_back(consume_identifier().value());
+    }
+
+    else if (current() == '<' && peek() == '<') {
+      consume(2);
+
+      if (!is_at_end() && current() == '=') {
+        consume();
+
+        tokens.emplace_back(
+            create_token(token::kind::symbol_ltltequal, m_source.substr(m_starting_pos, 3)));
+      } else {
+        tokens.emplace_back(
+            create_token(token::kind::symbol_ltlt, m_source.substr(m_starting_pos, 2)));
+      }
+    }
+
+    else if (current() == '>' && peek() == '>') {
+      consume(2);
+
+      if (!is_at_end() && current() == '=') {
+        consume();
+
+        tokens.emplace_back(
+            create_token(token::kind::symbol_gtgtequal, m_source.substr(m_starting_pos, 3)));
+      } else {
+        tokens.emplace_back(
+            create_token(token::kind::symbol_gtgt, m_source.substr(m_starting_pos, 2)));
+      }
     }
 
     else if (auto single_char_search = single_char_symbols.find(std::string{current()});

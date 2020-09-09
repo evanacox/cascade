@@ -34,6 +34,23 @@ namespace cascade::errors {
     unterminated_char,
     unexpected_tok,
     unterminated_block_comment,
+    number_literal_too_large,
+    unclosed_paren,
+    expected_expression,
+    unexpected_expression,
+    expected_semi,
+    expected_else_after_then,
+    invalid_char_literal,
+    unmatched_brace,
+    unexpected_end_of_input,
+    expected_comma,
+    expected_closing_bracket,
+    expected_opening_brace,
+    expected_type,
+    expected_identifier,
+    expected_declaration,
+    cannot_export_export,
+    duplicate_module,
   };
 
   /**

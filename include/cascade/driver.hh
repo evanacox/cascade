@@ -24,9 +24,11 @@
 #ifndef CASCADE_DRIVER_HH
 #define CASCADE_DRIVER_HH
 
+#include "cascade/ast/ast.hh"
 #include "cascade/util/argument_parser.hh"
 #include "cascade/util/mixins.hh"
 #include <filesystem>
+#include <optional>
 
 namespace cascade {
   /**
@@ -35,15 +37,24 @@ namespace cascade {
    * and passes them to the next stage.
    */
   class driver : util::noncopyable {
+    using stdpath = std::filesystem::path;
+
     util::argument_parser m_arg_parser;
 
     /**
-     * @brief Attempts to compile a source string
-     * @param path Path to the file being compiled
+     * @brief Attempts to parse a source string
+     * @param path Path to the file being parsed
      * @param source The source code
-     * @return Whether or not the compilation was successful
+     * @return An ast::program
      */
-    [[nodiscard]] bool compile(std::filesystem::path path, std::string_view source);
+    [[nodiscard]] std::optional<ast::program> parse(stdpath path, std::string_view source);
+
+    /**
+     * @brief Attempts to compile an AST
+     * @param path Path to the file being compiled
+     * @param prog The AST of the program being compiled
+     */
+    void compile(stdpath path, ast::program prog);
 
   public:
     /** @brief Disallow default construction */

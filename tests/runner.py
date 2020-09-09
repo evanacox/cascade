@@ -2,6 +2,7 @@
 
 import sys
 from typing import List, Tuple
+from optparse import OptionParser
 
 
 class TestRunner:
@@ -56,19 +57,17 @@ class TestRunner:
         raise NotImplementedError("Not implemented!")
 
 
-def main(threads: int) -> None:
-    """Runs the tests
-
-    Arguments:
-        - threads: The number of threads to use on various tests 
-          (e.g how many threads to compile cascadec with, how many 
-          threads to spawn to compile the test files, etc)
-    """
+def main(threads) -> None:
     raise NotImplementedError("Not implemented!")
 
 
+parser = OptionParser()
+parser.add_option("-j", "--jobs", dest="jobs", default=1, type="int", metavar="JOBS",
+                  help="the number of parallel jobs to run")
+parser.add_option("-b", "--build", dest="build", default=True,
+                  help="Whether or not to build the compiler before running tests")
+
+(options, args) = parser.parse_args()
+
 if __name__ == "__main__":
-    if sys.argv[1] == "--parallel":
-        main(int(sys.argv[2]))
-    else:
-        main(1)
+    main(options)

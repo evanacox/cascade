@@ -26,81 +26,85 @@
 #include <unordered_map>
 
 using namespace cascade;
+using kind = core::token::kind;
 
 // this gets reversed for string_to_kind
 // every k/v pair get put back into string_to_kind with string_to_kind[v] = k;
-static std::unordered_map<core::token::kind, std::string_view> kind_to_string{
-    {core::token::kind::keyword_const, "const"},
-    {core::token::kind::keyword_static, "static"},
-    {core::token::kind::keyword_fn, "fn"},
-    {core::token::kind::keyword_struct, "struct"},
-    {core::token::kind::keyword_pub, "pub"},
-    {core::token::kind::keyword_let, "let"},
-    {core::token::kind::keyword_mut, "mut"},
-    {core::token::kind::keyword_loop, "loop"},
-    {core::token::kind::keyword_while, "while"},
-    {core::token::kind::keyword_for, "for"},
-    {core::token::kind::keyword_in, "in"},
-    {core::token::kind::keyword_break, "break"},
-    {core::token::kind::keyword_continue, "continue"},
-    {core::token::kind::keyword_ret, "ret"},
-    {core::token::kind::keyword_assert, "assert"},
-    {core::token::kind::keyword_module, "module"},
-    {core::token::kind::keyword_import, "import"},
-    {core::token::kind::keyword_as, "as"},
-    {core::token::kind::keyword_from, "from"},
-    {core::token::kind::keyword_export, "export"},
-    {core::token::kind::keyword_if, "if"},
-    {core::token::kind::keyword_then, "then"},
-    {core::token::kind::keyword_else, "else"},
-    {core::token::kind::keyword_and, "and"},
-    {core::token::kind::keyword_or, "or"},
-    {core::token::kind::keyword_xor, "xor"},
-    {core::token::kind::keyword_not, "not"},
-    {core::token::kind::symbol_equal, "="},
-    {core::token::kind::symbol_colon, ":"},
-    {core::token::kind::symbol_coloncolon, "::"},
-    {core::token::kind::symbol_star, "*"},
-    {core::token::kind::symbol_pound, "&"},
-    {core::token::kind::symbol_openbracket, "["},
-    {core::token::kind::symbol_closebracket, "]"},
-    {core::token::kind::symbol_at, "@"},
-    {core::token::kind::symbol_dot, "."},
-    {core::token::kind::symbol_openbrace, "{"},
-    {core::token::kind::symbol_closebrace, "}"},
-    {core::token::kind::symbol_openparen, "("},
-    {core::token::kind::symbol_closeparen, ")"},
-    {core::token::kind::symbol_semicolon, ";"},
-    {core::token::kind::symbol_pipe, "|"},
-    {core::token::kind::symbol_caret, "^"},
-    {core::token::kind::symbol_plus, "+"},
-    {core::token::kind::symbol_hyphen, "-"},
-    {core::token::kind::symbol_forwardslash, "/"},
-    {core::token::kind::symbol_percent, "%"},
-    {core::token::kind::symbol_lt, "<"},
-    {core::token::kind::symbol_leq, "<="},
-    {core::token::kind::symbol_gt, ">"},
-    {core::token::kind::symbol_geq, ">="},
-    {core::token::kind::symbol_gtgt, ">>"},
-    {core::token::kind::symbol_ltlt, "<<"},
-    {core::token::kind::symbol_equalequal, "=="},
-    {core::token::kind::symbol_bangequal, "!="},
-    {core::token::kind::symbol_gtgtequal, ">>="},
-    {core::token::kind::symbol_ltltequal, "<<="},
-    {core::token::kind::symbol_poundequal, "&="},
-    {core::token::kind::symbol_pipeequal, "|="},
-    {core::token::kind::symbol_caretequal, "^="},
-    {core::token::kind::symbol_percentequal, "%="},
-    {core::token::kind::symbol_forwardslashequal, "/="},
-    {core::token::kind::symbol_starequal, "*="},
-    {core::token::kind::symbol_hyphenequal, "-="},
-    {core::token::kind::symbol_plusequal, "+="},
-    {core::token::kind::symbol_comma, ","},
+static std::unordered_map<kind, std::string_view> kind_to_string{
+    {kind::keyword_const, "const"},
+    {kind::keyword_static, "static"},
+    {kind::keyword_fn, "fn"},
+    {kind::keyword_struct, "struct"},
+    {kind::keyword_pub, "pub"},
+    {kind::keyword_let, "let"},
+    {kind::keyword_mut, "mut"},
+    {kind::keyword_loop, "loop"},
+    {kind::keyword_while, "while"},
+    {kind::keyword_for, "for"},
+    {kind::keyword_in, "in"},
+    {kind::keyword_break, "break"},
+    {kind::keyword_continue, "continue"},
+    {kind::keyword_ret, "ret"},
+    {kind::keyword_assert, "assert"},
+    {kind::keyword_module, "module"},
+    {kind::keyword_import, "import"},
+    {kind::keyword_as, "as"},
+    {kind::keyword_from, "from"},
+    {kind::keyword_export, "export"},
+    {kind::keyword_if, "if"},
+    {kind::keyword_then, "then"},
+    {kind::keyword_else, "else"},
+    {kind::keyword_and, "and"},
+    {kind::keyword_or, "or"},
+    {kind::keyword_xor, "xor"},
+    {kind::keyword_not, "not"},
+    {kind::keyword_clone, "clone"},
+    {kind::keyword_type, "type"},
+    {kind::symbol_equal, "="},
+    {kind::symbol_colon, ":"},
+    {kind::symbol_coloncolon, "::"},
+    {kind::symbol_star, "*"},
+    {kind::symbol_pound, "&"},
+    {kind::symbol_openbracket, "["},
+    {kind::symbol_closebracket, "]"},
+    {kind::symbol_at, "@"},
+    {kind::symbol_dot, "."},
+    {kind::symbol_openbrace, "{"},
+    {kind::symbol_closebrace, "}"},
+    {kind::symbol_openparen, "("},
+    {kind::symbol_closeparen, ")"},
+    {kind::symbol_semicolon, ";"},
+    {kind::symbol_pipe, "|"},
+    {kind::symbol_caret, "^"},
+    {kind::symbol_plus, "+"},
+    {kind::symbol_hyphen, "-"},
+    {kind::symbol_forwardslash, "/"},
+    {kind::symbol_percent, "%"},
+    {kind::symbol_lt, "<"},
+    {kind::symbol_leq, "<="},
+    {kind::symbol_gt, ">"},
+    {kind::symbol_geq, ">="},
+    {kind::symbol_gtgt, ">>"},
+    {kind::symbol_ltlt, "<<"},
+    {kind::symbol_equalequal, "=="},
+    {kind::symbol_bangequal, "!="},
+    {kind::symbol_gtgtequal, ">>="},
+    {kind::symbol_ltltequal, "<<="},
+    {kind::symbol_poundequal, "&="},
+    {kind::symbol_pipeequal, "|="},
+    {kind::symbol_caretequal, "^="},
+    {kind::symbol_percentequal, "%="},
+    {kind::symbol_forwardslashequal, "/="},
+    {kind::symbol_starequal, "*="},
+    {kind::symbol_hyphenequal, "-="},
+    {kind::symbol_plusequal, "+="},
+    {kind::symbol_comma, ","},
+    {kind::symbol_tilde, "~"},
 };
 
-static std::unordered_map<std::string_view, core::token::kind> string_to_kind{};
+static std::unordered_map<std::string_view, kind> string_to_kind{};
 
-// allows "standard" __attribute__((constructor)), so this would work on MSVC as well
+// allows "standards compliant" __attribute__((constructor)), so this would work on MSVC as well
 // it simply initializes the strings_to_kind type with flipped k/vs to what kind_to_string has
 static struct init {
   init() {
@@ -109,17 +113,18 @@ static struct init {
     }
 
     // these need to **not** be included in string_to_kind, so they're added here
-    kind_to_string[core::token::kind::identifier] = "identifier";
-    kind_to_string[core::token::kind::literal_number] = "number literal";
-    kind_to_string[core::token::kind::literal_bool] = "bool literal";
-    kind_to_string[core::token::kind::literal_char] = "char literal";
-    kind_to_string[core::token::kind::literal_string] = "string literal";
-    kind_to_string[core::token::kind::unknown] = "unknown";
-    kind_to_string[core::token::kind::error] = "error";
+    kind_to_string[kind::identifier] = "identifier";
+    kind_to_string[kind::literal_number] = "number literal";
+    kind_to_string[kind::literal_float] = "float literal";
+    kind_to_string[kind::literal_bool] = "bool literal";
+    kind_to_string[kind::literal_char] = "char literal";
+    kind_to_string[kind::literal_string] = "string literal";
+    kind_to_string[kind::unknown] = "unknown";
+    kind_to_string[kind::error] = "error";
 
     // same for string_to_kind
-    string_to_kind["true"] = core::token::kind::literal_bool;
-    string_to_kind["false"] = core::token::kind::literal_bool;
+    string_to_kind["true"] = kind::literal_bool;
+    string_to_kind["false"] = kind::literal_bool;
   }
 } init;
 
@@ -127,6 +132,6 @@ bool util::is_kind(std::string_view raw) {
   return string_to_kind.find(raw) != string_to_kind.end();
 }
 
-core::token::kind util::kind_from_string(std::string_view raw) { return string_to_kind[raw]; }
+kind util::kind_from_string(std::string_view raw) { return string_to_kind[raw]; }
 
-std::string_view util::string_from_kind(core::token::kind kind) { return kind_to_string[kind]; }
+std::string_view util::string_from_kind(kind k) { return kind_to_string[k]; }

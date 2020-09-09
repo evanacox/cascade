@@ -39,12 +39,12 @@ namespace cascade::ast {
   enum class numeric_type : char { boolean, integer, unsigned_integer, floating_point };
 
   /** @brief Represents a reference type */
-  class reference : public type {
+  class reference : public type_base {
     /** @brief The type of reference */
     reference_type m_reftype;
 
     /** @brief The type the reference refers to */
-    std::shared_ptr<type> m_type;
+    std::unique_ptr<type_base> m_type;
 
   public:
     /**
@@ -53,8 +53,9 @@ namespace cascade::ast {
      * @param reftype The type of reference it is
      * @param held Pointer to the type being referenced
      */
-    explicit reference(core::source_info info, reference_type reftype, std::shared_ptr<type> held)
-        : type(kind::type_ptr, std::move(info)), m_reftype(reftype), m_type(std::move(held)) {}
+    explicit reference(
+        core::source_info info, reference_type reftype, std::unique_ptr<type_base> held)
+        : type_base(kind::type_ref, std::move(info)), m_reftype(reftype), m_type(std::move(held)) {}
 
     /**
      * @brief Returns the type of reference it is
@@ -66,15 +67,15 @@ namespace cascade::ast {
      * @brief Returns the type being referenced by the ref
      * @return The type being referenced
      */
-    [[nodiscard]] std::shared_ptr<type> held() const { return m_type; }
+    [[nodiscard]] type_base &held() const { return *m_type; }
   };
 
   /** @brief Represents a pointer type */
-  class pointer : public type {
+  class pointer : public type_base {
     pointer_type m_ptrtype;
 
     /** @brief The type the pointer points to */
-    std::shared_ptr<type> m_type;
+    std::unique_ptr<type_base> m_type;
 
   public:
     /**
@@ -83,8 +84,8 @@ namespace cascade::ast {
      * @param ptrtype What type of pointer it is
      * @param held Pointer to the type being pointed to
      */
-    explicit pointer(core::source_info info, pointer_type ptrtype, std::shared_ptr<type> held)
-        : type(kind::type_ptr, std::move(info)), m_ptrtype(ptrtype), m_type(std::move(held)) {}
+    explicit pointer(core::source_info info, pointer_type ptrtype, std::unique_ptr<type_base> held)
+        : type_base(kind::type_ptr, std::move(info)), m_ptrtype(ptrtype), m_type(std::move(held)) {}
 
     /**
      * @brief Returns the type of pointer it is
@@ -96,15 +97,15 @@ namespace cascade::ast {
      * @brief Returns the type being pointed to
      * @return The type being pointed to
      */
-    [[nodiscard]] std::shared_ptr<type> held() const { return m_type; }
+    [[nodiscard]] type_base &held() const { return *m_type; }
   };
 
   /** @brief Represents an array type */
-  class array : public type {
+  class array : public type_base {
     /** @brief The number of elements in the array, if 0 it's not  */
     std::size_t m_length;
 
-    std::shared_ptr<type> m_type;
+    std::unique_ptr<type_base> m_type;
 
   public:
     /**
@@ -113,8 +114,8 @@ namespace cascade::ast {
      * @param len The length of the array
      * @param held Pointer to the type being pointed to
      */
-    explicit array(core::source_info info, std::size_t len, std::shared_ptr<type> held)
-        : type(kind::type_array, std::move(info)), m_length(len), m_type(std::move(held)) {}
+    explicit array(core::source_info info, std::size_t len, std::unique_ptr<type_base> held)
+        : type_base(kind::type_array, std::move(info)), m_length(len), m_type(std::move(held)) {}
 
     /**
      * @brief Gets the length of the array, if any
@@ -132,11 +133,11 @@ namespace cascade::ast {
      * @brief Returns the type the array members are
      * @return The type of the array members
      */
-    [[nodiscard]] std::shared_ptr<type> held() const { return m_type; }
+    [[nodiscard]] type_base &held() const { return *m_type; }
   };
 
   /** @brief Represents a builtin type */
-  class builtin : public type {
+  class builtin : public type_base {
     std::size_t m_width;
 
     numeric_type m_numeric_type;
@@ -149,7 +150,7 @@ namespace cascade::ast {
      * @param n_type What type of builtin it is
      */
     explicit builtin(core::source_info info, std::size_t width, numeric_type n_type)
-        : type(kind::type_builtin, std::move(info)), m_width(width), m_numeric_type(n_type) {}
+        : type_base(kind::type_builtin, std::move(info)), m_width(width), m_numeric_type(n_type) {}
 
     /**
      * @brief Returns the width of the builtin
@@ -165,7 +166,7 @@ namespace cascade::ast {
   };
 
   /** @brief Represents a UDT */
-  class user_defined : public type {
+  class user_defined : public type_base {
     std::string m_name;
 
   public:
@@ -175,7 +176,7 @@ namespace cascade::ast {
      * @param name The name of the UDT
      */
     explicit user_defined(core::source_info info, std::string name)
-        : type(kind::type_userdef, std::move(info)), m_name(std::move(name)) {}
+        : type_base(kind::type_userdef, std::move(info)), m_name(std::move(name)) {}
 
     /**
      * @brief Returns the name of the UDT
@@ -185,13 +186,23 @@ namespace cascade::ast {
   };
 
   /** @brief Serves as a marker for a type that the user left implied */
-  class implied : public type {
+  class implied : public type_base {
   public:
     /**
      * @brief Creates an implied instance
      * @param info The source info for the location where the type **would be**.
      */
-    explicit implied(core::source_info info) : type(kind::type_implied, std::move(info)) {}
+    explicit implied(core::source_info info) : type_base(kind::type_implied, std::move(info)) {}
+  };
+
+  /** @brief Serves as a marker for something that doesn't really *have* a type */
+  class void_type : public type_base {
+  public:
+    /**
+     * @brief Creates a void_type instance
+     * @param info The source info for the location where the type **would be**.
+     */
+    explicit void_type(core::source_info info) : type_base(kind::type_void, std::move(info)) {}
   };
 } // namespace cascade::ast
 

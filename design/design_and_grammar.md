@@ -131,14 +131,21 @@ static thing = 32;
 
 - *static_decl* := `static` *var_name* (`:` *type*)? `=` *expression* `;`
 
+#### `type` Declaration
+`type` declarations are just type aliases.
+
+```
+type FileHandle = *mut i8;
+```
+
 #### `fn` Declaration 
-- *fn_decl* := `fn` *fn_name* `(` *fn_argument_list* `)` *type* *block_expr*
+- *fn_decl* := `fn` *fn_name* `(` *fn_argument_list* `)` (`:` *type*)? *block_expr*
 
 `fn` declarations define a function. They contain a name, a list of arguments (and their types), 
 a return type, and a body.
 
 ```
-fn fibonacci(n: i32) i64 {
+fn fibonacci(n: i32): i64 {
   match n {
     case 0, 1, 2 -> n,
     case _ -> fibonacci(n - 1) + fibonacci(n - 2)
@@ -186,7 +193,7 @@ struct Point3D extends Point {
 
     -- "static" function, notice how it doesn't have
     -- a `self` argument
-    pub fn from(other: Point3D) Point3D {
+    pub fn from(other: Point3D): Point3D {
         Point3D(other.x, other.y, other.z);
     }
     
@@ -439,7 +446,7 @@ export import example_api::submodule;
 
 export const MAGIC_CONSTANT = 5234890;
 
-export fn user_exists(user: String) bool {}
+export fn user_exists(user: String): bool {}
 ```
 
 #### `module` declaration
@@ -501,21 +508,23 @@ and are intentionally made to be very flexible.
 | Operator                                                                 	| Description                                                                                                                    	| Associativity 	|
 |--------------------------------------------------------------------------	|--------------------------------------------------------------------------------------------------------------------------------	|---------------	|
 | ( *expr* )<br>{ *exprs* }                                                	| Grouping                                                                                                                       	|               	|
-| *type*(*args*)<br>*expr*()<br>*expr*[]<br>a.*name*<br>a.*method*(*args*) 	| Constructors<br>Function Calls<br>Index Access<br>Field Access<br>Method Call                                                  	| Left-to-right 	|
-| ~a<br>*a<br>&a<br>@a<br>+a -a<br>clone a                                 	| Logical and Bitwise NOT<br>Dereference<br>Get Reference<br>Address-of<br>Unary Plus / Minus<br>Clone                           	| Right-to-left 	|
+| *type*(*args*)<br>*expr*(*args*)<br>*expr*[*expr*]<br>a.*name*<br>a.*method*(*args*) 	| Constructors<br>Function Calls<br>Index Access<br>Field Access<br>Method Call                                                  	| Left-to-right 	|
+| ~a<br>*a<br>&a<br>@a<br>+a -a<br>clone a                                 	| Bitwise NOT<br>Dereference<br>Get Reference<br>Address-of<br>Unary Plus / Minus<br>Clone                           	| Right-to-left 	|
 | a * b<br>a / b<br>a % b                                                  	| Multiplication<br>Division<br>Remainder                                                                                        	| Left-to-right 	|
 | a + b<br>a - b                                                           	| Addition<br>Subtraction                                                                                                        	| Left-to-right 	|
 | <<<br>>>                                                                 	| Bitwise Left Shift<br>Bitwise Right Shift                                                                                      	| Left-to-right 	|
 | &                                                                        	| Bitwise AND                                                                                                                    	| Left-to-right 	|
 | ^                                                                        	| Bitwise XOR                                                                                                                    	| Left-to-right 	|
 | \|                                                                       	| Bitwise OR                                                                                                                     	| Left-to-right 	|
-| < <=<br>> >=<br>== !=                                                    	| Less-than, Less-than-or-equal<br>Greater-than, Greater-than-or-equal<br>Equals, does not equal                                 	| Left-to-right 	|
+| < <=<br>> >=                                                             	| Less-than, Less-than-or-equal<br>Greater-than, Greater-than-or-equal                                                           	| Left-to-right 	|
+| == !=                                                                    	| Equality, inequality                                                                                                           	| Left-to-right 	|
 | not                                                                      	| Logical NOT                                                                                                                    	| Right-to-left 	|
 | and                                                                      	| Logical AND                                                                                                                    	| Left-to-right 	|
 | xor                                                                      	| Logical XOR                                                                                                                    	| Left-to-right 	|
 | or                                                                       	| Logical OR                                                                                                                     	| Left-to-right 	|
-| if<br>match                                                              	| If expressions<br>Match expressions                                                                                            	|               	|
-| =<br>+= -=<br>*= /= %=<br><<= >>=<br>&= \|= ^=                           	| Assignment<br>Compound assignment (+-)<br>Compound assignment (*/%)<br>Compound assignment (<<>>)<br>Compound Assignment(&\|^) 	| Right-to-left 	|
+| if<br>match                                                              	| If expressions<br>Match expressions                                                                                            	| N/A           	|
+| =<br>+= -=<br>\*= /= %=<br><<= >>=<br>&= \|= ^=                           | Assignment<br>Compound assignment (+-)<br>Compound assignment (*/%)<br>Compound assignment (<<>>)<br>Compound Assignment(&\|^) 	| Right-to-left 	|
+
 #### Literal Expression
 Simply a literal of some sort.
 
@@ -589,7 +598,7 @@ An attempt to call a method on a struct. While this is syntactically identical t
 functor object in a structure's field, they are different things. Idealy, the analyzer will 
 discern which one it is and modify the AST accordingly.  
 
-```++
+```
 foo.bar(10);
 ```
 
