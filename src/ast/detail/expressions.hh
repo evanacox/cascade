@@ -24,9 +24,9 @@
 #ifndef CASCADE_AST_DETAIL_EXPRESSIONS_HH
 #define CASCADE_AST_DETAIL_EXPRESSIONS_HH
 
-#include "cascade/ast/detail/nodes.hh"
-#include "cascade/ast/detail/types.hh"
-#include "cascade/core/lexer.hh"
+#include "ast/detail/nodes.hh"
+#include "ast/detail/types.hh"
+#include "core/lexer.hh"
 
 namespace cascade::ast {
   class identifier : public expression {

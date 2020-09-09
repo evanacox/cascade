@@ -25,7 +25,7 @@
 #ifndef CASCADE_UTIL_KEYWORDS_HH
 #define CASCADE_UTIL_KEYWORDS_HH
 
-#include "cascade/core/lexer.hh"
+#include "core/lexer.hh"
 
 namespace cascade::util {
   /**

@@ -24,9 +24,9 @@
 #ifndef CASCADE_UTIL_LOGGING_HH
 #define CASCADE_UTIL_LOGGING_HH
 
-#include "cascade/ast/ast.hh"
-#include "cascade/errors/error.hh"
-#include "cascade/errors/error_visitor.hh"
+#include "ast/ast.hh"
+#include "errors/error.hh"
+#include "errors/error_visitor.hh"
 #include <memory>
 #include <string>
 #include <vector>

@@ -25,7 +25,7 @@
 #ifndef CASCADE_UTIL_SOURCE_READER_HH
 #define CASCADE_UTIL_SOURCE_READER_HH
 
-#include "cascade/util/argument_parser.hh"
+#include "util/argument_parser.hh"
 #include <filesystem>
 #include <optional>
 #include <string>

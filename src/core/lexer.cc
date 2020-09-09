@@ -21,9 +21,9 @@
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/core/lexer.hh"
-#include "cascade/errors/error.hh"
-#include "cascade/util/keywords.hh"
+#include "core/lexer.hh"
+#include "errors/error.hh"
+#include "util/keywords.hh"
 #include <cassert>
 #include <optional>
 #include <type_traits>

@@ -17,7 +17,7 @@ add_subdirectory (vendor/fmt EXCLUDE_FROM_ALL)
 # Create the executable
 add_executable (cascade ${SOURCE_FILES})
 target_link_libraries (cascade fmt::fmt-header-only ${LLVM_LIBS})
-target_include_directories (cascade PRIVATE include vendor/fmt/include vendor/cxxopts/include ${LLVM_INCLUDE_DIRS})
+target_include_directories (cascade PRIVATE src vendor/fmt/include vendor/cxxopts/include ${LLVM_INCLUDE_DIRS})
 
 # Enable C++20 for Concepts / other addons
 set_target_properties(cascade PROPERTIES

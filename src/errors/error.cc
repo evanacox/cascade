@@ -21,7 +21,7 @@
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/errors/error.hh"
+#include "errors/error.hh"
 
 using namespace cascade;
 using namespace errors;

@@ -21,8 +21,8 @@
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/util/types.hh"
-#include "cascade/ast/detail/types.hh"
+#include "util/types.hh"
+#include "ast/detail/types.hh"
 #include <cassert>
 
 using namespace cascade;

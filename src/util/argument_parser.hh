@@ -24,7 +24,7 @@
 #ifndef CASCADE_UTIL_ARGUMENT_PARSER_HH
 #define CASCADE_UTIL_ARGUMENT_PARSER_HH
 
-#include "cascade/util/mixins.hh"
+#include "util/mixins.hh"
 #include <optional>
 #include <string>
 #include <string_view>
@@ -90,9 +90,8 @@ namespace cascade::util {
      * @param triple The target triple
      * @param output The file to output to
      */
-    explicit compilation_options(std::vector<std::string> files,
-        optimization_level opt_level, bool debug_symbols, emitted to_emit,
-        std::string triple, std::string output);
+    explicit compilation_options(std::vector<std::string> files, optimization_level opt_level,
+        bool debug_symbols, emitted to_emit, std::string triple, std::string output);
 
     /**
      * @brief Returns a list of files to compile. If the list is empty,

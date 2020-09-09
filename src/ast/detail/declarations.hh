@@ -24,10 +24,10 @@
 #ifndef CASCADE_AST_DETAIL_DECLARATIONS_HH
 #define CASCADE_AST_DETAIL_DECLARATIONS_HH
 
-#include "cascade/ast/ast_visitor.hh"
-#include "cascade/ast/detail/expressions.hh"
-#include "cascade/ast/detail/nodes.hh"
-#include "cascade/core/lexer.hh"
+#include "ast/ast_visitor.hh"
+#include "ast/detail/expressions.hh"
+#include "ast/detail/nodes.hh"
+#include "core/lexer.hh"
 
 namespace cascade::ast {
   /** @brief Represents a `const` declaration */

@@ -22,11 +22,11 @@
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/util/argument_parser.hh"
-#include "cascade/util/logging.hh"
+#include "util/argument_parser.hh"
+#include "util/logging.hh"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
-#include "cxxopts.hpp"
+#include <cxxopts.hpp>
 #pragma clang diagnostic pop
 
 using namespace cascade::util;

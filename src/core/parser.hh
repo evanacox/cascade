@@ -24,9 +24,9 @@
 #ifndef CASCADE_CORE_PARSER_HH
 #define CASCADE_CORE_PARSER_HH
 
-#include "cascade/ast/ast.hh"
-#include "cascade/core/lexer.hh"
-#include "cascade/errors/error.hh"
+#include "ast/ast.hh"
+#include "core/lexer.hh"
+#include "errors/error.hh"
 #include <cstddef>
 #include <memory>
 #include <string_view>

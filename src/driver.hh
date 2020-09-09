@@ -24,9 +24,9 @@
 #ifndef CASCADE_DRIVER_HH
 #define CASCADE_DRIVER_HH
 
-#include "cascade/ast/ast.hh"
-#include "cascade/util/argument_parser.hh"
-#include "cascade/util/mixins.hh"
+#include "ast/ast.hh"
+#include "util/argument_parser.hh"
+#include "util/mixins.hh"
 #include <filesystem>
 #include <optional>
 

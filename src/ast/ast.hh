@@ -24,13 +24,13 @@
 #ifndef CASCADE_AST_AST_HH
 #define CASCADE_AST_AST_HH
 
-#include "cascade/ast/detail/declarations.hh"
-#include "cascade/ast/detail/expressions.hh"
-#include "cascade/ast/detail/literals.hh"
-#include "cascade/ast/detail/nodes.hh"
-#include "cascade/ast/detail/statements.hh"
-#include "cascade/ast/detail/types.hh"
-#include "cascade/util/mixins.hh"
+#include "detail/declarations.hh"
+#include "detail/expressions.hh"
+#include "detail/literals.hh"
+#include "detail/nodes.hh"
+#include "detail/statements.hh"
+#include "detail/types.hh"
+#include "util/mixins.hh"
 
 namespace cascade::ast {
   class program : util::noncopyable {

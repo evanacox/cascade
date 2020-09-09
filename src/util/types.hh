@@ -21,7 +21,7 @@
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/ast/ast.hh"
+#include "ast/ast.hh"
 #include <utility>
 
 namespace cascade::util {

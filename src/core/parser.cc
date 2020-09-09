@@ -21,12 +21,12 @@
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/core/parser.hh"
-#include "cascade/ast/ast.hh"
-#include "cascade/ast/detail/expressions.hh"
-#include "cascade/ast/detail/literals.hh"
-#include "cascade/ast/detail/types.hh"
-#include "cascade/util/logging.hh"
+#include "core/parser.hh"
+#include "ast/ast.hh"
+#include "ast/detail/expressions.hh"
+#include "ast/detail/literals.hh"
+#include "ast/detail/types.hh"
+#include "util/logging.hh"
 #include <charconv>
 #include <fmt/format.h>
 #include <memory>

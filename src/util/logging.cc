@@ -21,15 +21,15 @@
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/util/logging.hh"
-#include "cascade/ast/ast_visitor.hh"
-#include "cascade/ast/detail/declarations.hh"
-#include "cascade/ast/detail/types.hh"
-#include "cascade/errors/error_lookup.hh"
-#include "cascade/errors/error_visitor.hh"
-#include "cascade/util/keywords.hh"
-#include "cascade/util/types.hh"
+#include "util/logging.hh"
+#include "ast/ast_visitor.hh"
+#include "ast/detail/declarations.hh"
+#include "ast/detail/types.hh"
+#include "errors/error_lookup.hh"
+#include "errors/error_visitor.hh"
 #include "fmt/core.h"
+#include "util/keywords.hh"
+#include "util/types.hh"
 #include <fmt/format.h>
 #include <fstream>
 #include <iostream>

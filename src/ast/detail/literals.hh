@@ -24,8 +24,8 @@
 #ifndef CASCADE_AST_DETAIL_LITERALS_HH
 #define CASCADE_AST_DETAIL_LITERALS_HH
 
-#include "cascade/ast/detail/nodes.hh"
-#include "cascade/core/lexer.hh"
+#include "ast/detail/nodes.hh"
+#include "core/lexer.hh"
 
 namespace cascade::ast {
   /** @brief Tags a literal's type, for use when getting the value */

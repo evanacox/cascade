@@ -24,10 +24,10 @@
 #ifndef CASCADE_ERRORS_ERROR_HH
 #define CASCADE_ERRORS_ERROR_HH
 
-#include "cascade/ast/ast.hh"
-#include "cascade/core/lexer.hh"
-#include "cascade/errors/error_lookup.hh"
-#include "cascade/errors/error_visitor.hh"
+#include "ast/ast.hh"
+#include "core/lexer.hh"
+#include "errors/error_lookup.hh"
+#include "errors/error_visitor.hh"
 #include <filesystem>
 #include <memory>
 #include <optional>

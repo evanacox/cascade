@@ -21,12 +21,12 @@
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/driver.hh"
-#include "cascade/core/lexer.hh"
-#include "cascade/core/parser.hh"
-#include "cascade/errors/error.hh"
-#include "cascade/util/logging.hh"
-#include "cascade/util/source_reader.hh"
+#include "driver.hh"
+#include "core/lexer.hh"
+#include "core/parser.hh"
+#include "errors/error.hh"
+#include "util/logging.hh"
+#include "util/source_reader.hh"
 #include <algorithm>
 #include <iterator>
 #include <queue>

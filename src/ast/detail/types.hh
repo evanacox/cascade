@@ -24,8 +24,8 @@
 #ifndef CASCADE_AST_DETAIL_TYPES_HH
 #define CASCADE_AST_DETAIL_TYPES_HH
 
-#include "cascade/ast/detail/nodes.hh"
-#include "cascade/core/lexer.hh"
+#include "ast/detail/nodes.hh"
+#include "core/lexer.hh"
 #include <memory>
 
 namespace cascade::ast {

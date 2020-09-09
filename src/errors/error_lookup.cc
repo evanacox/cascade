@@ -21,7 +21,7 @@
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/errors/error_lookup.hh"
+#include "errors/error_lookup.hh"
 #include <string_view>
 #include <unordered_map>
 

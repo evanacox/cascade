@@ -21,8 +21,8 @@
  *
  *---------------------------------------------------------------------------*/
 
-#include "cascade/driver.hh"
-#include "cascade/util/logging.hh"
+#include "driver.hh"
+#include "util/logging.hh"
 
 int main(int argc, const char **argv) {
   cascade::driver driver(argc, argv);
