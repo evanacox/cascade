@@ -125,7 +125,7 @@ static constexpr unsigned number_of_digits(int n) {
 #define VISIT(type) virtual void visit(ast::type &) final
 
 /** @brief Visits AST nodes to print them out */
-struct ast_printer : public ast::ast_visitor {
+struct ast_printer : public ast::ast_visitor<void> {
   std::string m_prefix = "";
 
   void accept_with_prefix(ast::node &node);

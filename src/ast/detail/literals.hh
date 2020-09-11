@@ -61,7 +61,7 @@ namespace cascade::ast {
     }
   };
 
-  class char_literal : public literal {
+  class char_literal : public literal, public visitable<char_literal> {
     char m_value;
 
   public:
@@ -78,11 +78,9 @@ namespace cascade::ast {
     }
 
     [[nodiscard]] char value() const { return m_value; }
-
-    virtual void accept(ast_visitor &visitor) final { visitor.visit(*this); }
   };
 
-  class string_literal : public literal {
+  class string_literal : public literal, public visitable<string_literal> {
     std::string m_value;
 
   public:
@@ -99,11 +97,9 @@ namespace cascade::ast {
     }
 
     [[nodiscard]] std::string_view value() const { return m_value; }
-
-    virtual void accept(ast_visitor &visitor) final { visitor.visit(*this); }
   };
 
-  class int_literal : public literal {
+  class int_literal : public literal, public visitable<int_literal> {
     int m_value;
 
   public:
@@ -118,11 +114,9 @@ namespace cascade::ast {
     [[nodiscard]] virtual bool is(literal_type type) const { return type == literal_type::lit_int; }
 
     [[nodiscard]] int value() const { return m_value; }
-
-    virtual void accept(ast_visitor &visitor) final { visitor.visit(*this); }
   };
 
-  class float_literal : public literal {
+  class float_literal : public literal, public visitable<float_literal> {
     float m_value;
 
   public:
@@ -139,11 +133,9 @@ namespace cascade::ast {
     }
 
     [[nodiscard]] float value() const { return m_value; }
-
-    virtual void accept(ast_visitor &visitor) final { visitor.visit(*this); }
   };
 
-  class bool_literal : public literal {
+  class bool_literal : public literal, public visitable<bool_literal> {
     bool m_value;
 
   public:
@@ -160,8 +152,6 @@ namespace cascade::ast {
     }
 
     [[nodiscard]] bool value() const { return m_value; }
-
-    virtual void accept(ast_visitor &visitor) final { visitor.visit(*this); }
   };
 } // namespace cascade::ast
 

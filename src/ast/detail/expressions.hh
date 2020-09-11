@@ -29,19 +29,17 @@
 #include "core/lexer.hh"
 
 namespace cascade::ast {
-  class identifier : public expression {
+  class identifier : public expression, public visitable<identifier> {
     std::string m_name;
 
   public:
     explicit identifier(core::source_info info, std::string_view name)
         : expression(kind::identifier, std::move(info)), m_name(std::string{name}) {}
 
-    virtual void accept(ast_visitor &visitor) final { visitor.visit(*this); }
-
     [[nodiscard]] std::string_view name() const { return m_name; }
   };
 
-  class call : public expression {
+  class call : public expression, public visitable<call> {
     std::unique_ptr<expression> m_callee;
     std::vector<std::unique_ptr<expression>> m_args;
 
@@ -52,14 +50,12 @@ namespace cascade::ast {
           m_callee(std::move(callee)),
           m_args(std::move(args)) {}
 
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
-
     [[nodiscard]] expression &callee() const { return *m_callee; }
 
     [[nodiscard]] const std::vector<std::unique_ptr<expression>> &args() const { return m_args; }
   };
 
-  class binary : public expression {
+  class binary : public expression, public visitable<binary> {
     core::token::kind m_op;
     std::unique_ptr<expression> m_lhs;
     std::unique_ptr<expression> m_rhs;
@@ -72,8 +68,6 @@ namespace cascade::ast {
           m_lhs(std::move(lhs)),
           m_rhs(std::move(rhs)) {}
 
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
-
     [[nodiscard]] core::token::kind op() const { return m_op; }
 
     [[nodiscard]] expression &lhs() const { return *m_lhs; }
@@ -81,7 +75,7 @@ namespace cascade::ast {
     [[nodiscard]] expression &rhs() const { return *m_rhs; }
   };
 
-  class unary : public expression {
+  class unary : public expression, public visitable<unary> {
     core::token::kind m_op;
     std::unique_ptr<expression> m_rhs;
 
@@ -89,14 +83,12 @@ namespace cascade::ast {
     explicit unary(core::source_info info, core::token::kind op, std::unique_ptr<expression> rhs)
         : expression(kind::expression_unary, std::move(info)), m_op(op), m_rhs(std::move(rhs)) {}
 
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
-
     [[nodiscard]] core::token::kind op() const { return m_op; }
 
     [[nodiscard]] expression &rhs() const { return *m_rhs; }
   };
 
-  class field_access : public expression {
+  class field_access : public expression, public visitable<field_access> {
     std::unique_ptr<expression> m_accessed;
     std::string m_field;
 
@@ -110,11 +102,9 @@ namespace cascade::ast {
     [[nodiscard]] expression &accessed() const { return *m_accessed; }
 
     [[nodiscard]] std::string_view field_name() const { return m_field; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
-  class index : public expression {
+  class index : public expression, public visitable<index> {
     std::unique_ptr<expression> m_array;
     std::unique_ptr<expression> m_index;
 
@@ -128,11 +118,9 @@ namespace cascade::ast {
     [[nodiscard]] expression &array() const { return *m_array; }
 
     [[nodiscard]] expression &idx() const { return *m_index; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
-  class if_else : public expression {
+  class if_else : public expression, public visitable<if_else> {
     std::unique_ptr<expression> m_condition;
     std::unique_ptr<expression> m_true;
     std::optional<std::unique_ptr<expression>> m_false;
@@ -157,11 +145,9 @@ namespace cascade::ast {
 
       return std::nullopt;
     }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
-  class block : public expression {
+  class block : public expression, public visitable<block> {
     std::vector<std::unique_ptr<statement>> m_statements;
 
     std::unique_ptr<type_base> m_return_type;
@@ -178,11 +164,9 @@ namespace cascade::ast {
     }
 
     [[nodiscard]] type_base &type() const { return *m_return_type; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
-  class struct_init : public expression {
+  class struct_init : public expression, public visitable<struct_init> {
   public:
     struct pair {
       std::string field_name;
@@ -202,8 +186,6 @@ namespace cascade::ast {
     [[nodiscard]] const std::vector<pair> &pairs() const { return m_init; }
 
     [[nodiscard]] std::string_view name() const { return m_struct_name; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 } // namespace cascade::ast
 

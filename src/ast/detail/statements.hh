@@ -29,7 +29,7 @@
 
 namespace cascade::ast {
   /** @brief Simply an expression in place of a statement */
-  class expression_statement : public statement {
+  class expression_statement : public statement, public visitable<expression_statement> {
     std::unique_ptr<expression> m_expr;
 
   public:
@@ -37,11 +37,9 @@ namespace cascade::ast {
         : statement(kind::statement_expression, std::move(info)), m_expr(std::move(expr)) {}
 
     [[nodiscard]] expression &expr() const { return *m_expr; }
-
-    virtual void accept(ast_visitor &visitor) final { visitor.visit(*this); }
   };
 
-  class let : public statement {
+  class let : public statement, public visitable<let> {
     std::unique_ptr<expression> m_initializer;
     std::unique_ptr<type_base> m_type;
     std::string m_name;
@@ -59,11 +57,9 @@ namespace cascade::ast {
     [[nodiscard]] type_base &type() const { return *m_type; }
 
     [[nodiscard]] std::string_view name() const { return m_name; }
-
-    virtual void accept(ast_visitor &visitor) final { visitor.visit(*this); }
   };
 
-  class mut : public statement {
+  class mut : public statement, public visitable<mut> {
     std::unique_ptr<expression> m_initializer;
     std::unique_ptr<type_base> m_type;
     std::string m_name;
@@ -81,11 +77,9 @@ namespace cascade::ast {
     [[nodiscard]] type_base &type() const { return *m_type; }
 
     [[nodiscard]] std::string_view name() const { return m_name; }
-
-    virtual void accept(ast_visitor &visitor) final { visitor.visit(*this); }
   };
 
-  class ret : public statement {
+  class ret : public statement, public visitable<ret> {
     std::optional<std::unique_ptr<expression>> m_return_value;
 
   public:
@@ -99,11 +93,9 @@ namespace cascade::ast {
 
       return std::nullopt;
     }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
-  class loop : public statement {
+  class loop : public statement, public visitable<loop> {
     std::optional<std::unique_ptr<expression>> m_condition;
     std::unique_ptr<expression> m_body;
 
@@ -123,8 +115,6 @@ namespace cascade::ast {
     }
 
     [[nodiscard]] expression &body() const { return *m_body; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 } // namespace cascade::ast
 

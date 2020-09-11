@@ -54,10 +54,48 @@ namespace cascade::ast {
   class loop;
   class type_decl;
 
-#define VISIT(type) virtual void visit(type &) = 0
+#define VISIT(type) virtual T visit(type &) = 0
 
   /** @brief Abstract AST visitor type */
-  class ast_visitor {
+  template <class T> class ast_visitor {
+  public:
+    // I love OO boilerplate, don't you?
+    VISIT(type_base);
+    VISIT(const_decl);
+    VISIT(static_decl);
+    VISIT(argument);
+    VISIT(fn);
+    VISIT(module_decl);
+    VISIT(import_decl);
+    VISIT(export_decl);
+    VISIT(char_literal);
+    VISIT(string_literal);
+    VISIT(int_literal);
+    VISIT(float_literal);
+    VISIT(bool_literal);
+    VISIT(identifier);
+    VISIT(call);
+    VISIT(binary);
+    VISIT(unary);
+    VISIT(field_access);
+    VISIT(index);
+    VISIT(if_else);
+    VISIT(struct_init);
+    VISIT(block);
+    VISIT(expression_statement);
+    VISIT(let);
+    VISIT(mut);
+    VISIT(ret);
+    VISIT(loop);
+    VISIT(type_decl);
+
+    virtual ~ast_visitor() {}
+  };
+
+#undef VISIT
+#define VISIT(type) virtual void visit(type &) = 0
+
+  template <> class ast_visitor<void> {
   public:
     // I love OO boilerplate, don't you?
     VISIT(type_base);

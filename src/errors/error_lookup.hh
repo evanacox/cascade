@@ -51,6 +51,7 @@ namespace cascade::errors {
     expected_declaration,
     cannot_export_export,
     duplicate_module,
+    unexpected_builtin,
   };
 
   /**

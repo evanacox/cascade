@@ -31,7 +31,7 @@
 
 namespace cascade::ast {
   /** @brief Represents a `const` declaration */
-  class const_decl : public declaration {
+  class const_decl : public declaration, public visitable<const_decl> {
     std::string m_name;
     std::unique_ptr<expression> m_initializer;
     std::unique_ptr<type_base> m_type;
@@ -59,13 +59,10 @@ namespace cascade::ast {
 
     /** @brief Gets the type of the declaration */
     [[nodiscard]] type_base &type() const { return *m_type; }
-
-    /** @brief Accepts a visitor */
-    virtual void accept(ast_visitor &visitor) { return visitor.visit(*this); }
   };
 
   /** @brief Represents a `static` declaration */
-  class static_decl : public declaration {
+  class static_decl : public declaration, public visitable<static_decl> {
     std::string m_name;
     std::unique_ptr<expression> m_initializer;
     std::unique_ptr<type_base> m_type;
@@ -93,12 +90,10 @@ namespace cascade::ast {
 
     /** @brief Gets the type of the declaration */
     [[nodiscard]] type_base &type() const { return *m_type; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
   /** @brief Represents a single argument declaration for a function */
-  class argument : public declaration {
+  class argument : public declaration, public visitable<argument> {
     std::string m_name;
     std::unique_ptr<type_base> m_type;
 
@@ -113,12 +108,10 @@ namespace cascade::ast {
 
     /** @brief Returns a pointer to the argument's type signature */
     [[nodiscard]] type_base &type() const { return *m_type; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
   /** @brief Represents a function */
-  class fn : public declaration {
+  class fn : public declaration, public visitable<fn> {
     std::string m_name;
     std::vector<argument> m_args;
     std::unique_ptr<type_base> m_return_type;
@@ -151,12 +144,10 @@ namespace cascade::ast {
 
     /** @brief Returns a pointer to the body of the fn */
     [[nodiscard]] expression &body() const { return *m_block; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
   /** @brief Represents a module declaration for a file */
-  class module_decl : public declaration {
+  class module_decl : public declaration, public visitable<module_decl> {
     std::string m_name;
 
   public:
@@ -170,12 +161,10 @@ namespace cascade::ast {
 
     /** @brief Returns the module name */
     [[nodiscard]] std::string_view name() const { return m_name; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
   /** @brief Represents a module declaration for a file */
-  class import_decl : public declaration {
+  class import_decl : public declaration, public visitable<import_decl> {
     std::string m_name;
     std::vector<std::string> m_items;
     std::optional<std::string> m_alias;
@@ -202,12 +191,10 @@ namespace cascade::ast {
 
     /** @brief Returns the alias of the imported module, if there is one */
     [[nodiscard]] std::optional<std::string_view> alias() const { return m_alias; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
   /** @brief Represents an exported entity */
-  class export_decl : public declaration {
+  class export_decl : public declaration, public visitable<export_decl> {
     std::unique_ptr<declaration> m_exported;
 
   public:
@@ -221,11 +208,9 @@ namespace cascade::ast {
 
     /** @brief Returns a pointer to the item being exported */
     [[nodiscard]] declaration &exported() const { return *m_exported; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 
-  class type_decl : public declaration {
+  class type_decl : public declaration, public visitable<type_decl> {
     std::unique_ptr<type_base> m_type;
     std::string m_name;
 
@@ -237,7 +222,7 @@ namespace cascade::ast {
      * @param name The name of the alias
      */
     explicit type_decl(core::source_info info, std::unique_ptr<type_base> type, std::string name)
-        : declaration(kind::declaration_export, std::move(info)),
+        : declaration(kind::declaration_type, std::move(info)),
           m_type(std::move(type)),
           m_name(std::move(name)) {}
 
@@ -246,8 +231,6 @@ namespace cascade::ast {
 
     /** @brief Returns a string_view to the alias given to the type */
     [[nodiscard]] std::string_view name() const { return m_name; }
-
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 } // namespace cascade::ast
 

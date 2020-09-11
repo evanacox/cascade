@@ -52,6 +52,7 @@ static std::unordered_map<error_code, std::string_view> errs{
     {ec::expected_identifier, "expected an identifier"},
     {ec::expected_declaration, "expected a declaration"},
     {ec::duplicate_module, "file already has a module declaration"},
+    {ec::unexpected_builtin, "unexpected builtin name"},
 };
 
 static std::unordered_map<error_code, std::string_view> notes{

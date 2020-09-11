@@ -84,8 +84,7 @@ namespace cascade::ast {
      */
     explicit node(kind type, core::source_info info) : m_info(info), m_type(type) {}
 
-    /** @brief Accepts a visitor to the node */
-    virtual void accept(ast_visitor &visitor) = 0;
+    template <class T> auto accept(ast_visitor<T> &visitor);
 
     /** @brief Returns the node's type */
     [[nodiscard]] kind raw_kind() const { return m_type; }
@@ -136,6 +135,28 @@ namespace cascade::ast {
     virtual ~node(){};
   };
 
+  /** @brief "visitable" mixin for the AST types */
+  template <class T> class visitable {
+  public:
+    /**
+     * @brief Standard visitor method for void
+     * @param visitor The visitor to accept
+     */
+    void visit_accept(ast_visitor<void> &visitor) {
+      // each type inheriting from this becomes visitable
+      return visitor.visit(static_cast<T &>(*this));
+    }
+
+    /**
+     * @brief Templated accept method for work with visitors with return values
+     * @param visitor The visitor to accept
+     * @return The result of the visit method
+     */
+    template <class R> R visit_accept(ast_visitor<R> &visitor) {
+      return visitor.visit(static_cast<T &>(*this));
+    }
+  };
+
   /** @brief Tag type for top-level declarations, also defines the is_*() methods */
   class declaration : public node {
   public:
@@ -176,7 +197,7 @@ namespace cascade::ast {
   };
 
   /** @brief Tag type for types, defines the is_*() methods */
-  class type_base : public node {
+  class type_base : public node, public visitable<type_base> {
   public:
     explicit type_base(kind t, core::source_info info) : node(std::move(t), std::move(info)) {}
 
@@ -188,7 +209,6 @@ namespace cascade::ast {
 
     // the objects representing types are recursive, a visitor would need to
     // figure out the type anyway.
-    virtual void accept(ast_visitor &visitor) final { return visitor.visit(*this); }
   };
 } // namespace cascade::ast
 

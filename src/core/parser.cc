@@ -30,6 +30,7 @@
 #include <charconv>
 #include <fmt/format.h>
 #include <memory>
+#include <set>
 #include <stack>
 #include <string>
 
@@ -45,6 +46,26 @@ using decl_ptr = std::unique_ptr<ast::declaration>;
 using type_ptr = std::unique_ptr<ast::type_base>;
 using kind = token::kind;
 using ec = errors::error_code;
+
+static std::set<std::string_view> builtin_words{
+    "i8",
+    "i16",
+    "i32",
+    "i64",
+    "u8",
+    "u16",
+    "u32",
+    "u64",
+    "f32",
+    "f64",
+    "bool",
+};
+
+static bool is_builtin(const token &identifier) {
+  assert(identifier.is(kind::identifier) && "calling is_builtin on non-identifier!");
+
+  return builtin_words.find(identifier.raw()) != builtin_words.end();
+}
 
 struct error_sentinel {};
 
@@ -113,6 +134,8 @@ public:
   // error reporting
   [[noreturn]] void report_error(ec code, core::token tok, std::string note = "") const;
   [[noreturn]] void report_error(ec code, node_ptr node, std::string note = "") const;
+  void report_nothrow(ec code, core::token tok, std::string note = "") const noexcept;
+  void report_nothrow(ec code, node_ptr node, std::string note = "") const noexcept;
 
   // recursive-descent methods
   [[nodiscard]] expr_ptr block();
@@ -248,6 +271,16 @@ void parser_impl::report_error(ec code, node_ptr node, std::string note) const {
       code, std::move(node), note == "" ? std::nullopt : std::make_optional(note)));
 
   throw error_sentinel{};
+}
+
+void parser_impl::report_nothrow(ec code, core::token tok, std::string note) const noexcept {
+  m_report(std::make_unique<errors::token_error>(
+      code, tok, note == "" ? std::nullopt : std::make_optional(note)));
+}
+
+void parser_impl::report_nothrow(ec code, node_ptr node, std::string note) const noexcept {
+  m_report(std::make_unique<errors::ast_error>(
+      code, std::move(node), note == "" ? std::nullopt : std::make_optional(note)));
 }
 
 expr_ptr parser_impl::finish_call(expr_ptr callee) {
@@ -827,6 +860,11 @@ decl_ptr parser_impl::module_decl() {
 
   auto name = consume();
 
+  if (is_builtin(name)) {
+    report_nothrow(
+        ec::unexpected_builtin, name, "Expected a module name, got a reserved builtin name!");
+  }
+
   check_semi("Expected a ';' after initializer!");
 
   auto semi = consume();
@@ -852,10 +890,15 @@ decl_ptr parser_impl::const_static() {
 
   if (current().is_not(kind::identifier)) {
     report_error(ec::expected_identifier, consume(),
-        fmt::format("Expected an identifier after keyword '{}'.", begin.raw()));
+        fmt::format("Expected an identifier after keyword '{}'!", begin.raw()));
   }
 
   auto id = consume();
+
+  if (is_builtin(id)) {
+    report_nothrow(
+        ec::unexpected_builtin, id, "Expected a variable name, got a reserved builtin name!");
+  }
 
   // type has to be explicitly the base
   type_ptr var_type = (current().is(kind::symbol_colon))
@@ -887,10 +930,15 @@ decl_ptr parser_impl::type_decl() {
   auto begin = consume();
 
   if (current().is_not(kind::identifier)) {
-    report_error(ec::expected_identifier, consume(), "Expected an identifier for the type alias");
+    report_error(ec::expected_identifier, consume(), "Expected an identifier for the type alias!");
   }
 
   auto name = consume();
+
+  if (is_builtin(name)) {
+    report_nothrow(
+        ec::unexpected_builtin, name, "Expected a type alias name, got a reserved builtin name!");
+  }
 
   if (current().is_not(kind::symbol_equal)) {
     report_error(ec::unexpected_tok, consume(), "Expected an '=' and a type for type alias!");
@@ -913,10 +961,14 @@ decl_ptr parser_impl::fn() {
 
   if (current().is_not(kind::identifier)) {
     report_error(
-        ec::expected_identifier, consume(), "Expected an identifier for the function name");
+        ec::expected_identifier, consume(), "Expected an identifier for the function name!");
   }
 
   auto name = consume();
+
+  if (is_builtin(name)) {
+    report_nothrow(ec::unexpected_builtin, name, "Expected an fn name, got reserved builtin name!");
+  }
 
   if (current().is_not(kind::symbol_openparen)) {
     report_error(ec::unexpected_tok, consume(), "Expected a '(' to begin fn argument list!");
