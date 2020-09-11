@@ -51,9 +51,9 @@ std::optional<ast::program> driver::parse(stdpath path, std::string_view source)
 #ifndef NDEBUG
   util::debug_print(tokens);
 
-  auto parsed = core::parser(tokens, report_err).parse();
+  auto parsed = core::parse(tokens, report_err);
 #else
-  auto parsed = core::parser(std::move(tokens), report_err).parse();
+  auto parsed = core::parse(std::move(tokens), report_err);
 #endif
 
   if (errs.size() != 0) {
@@ -103,7 +103,7 @@ int driver::run() {
     if (parsed) {
       util::debug_print(parsed.value());
 
-      programs.push_back(std::move(parsed.value()));
+      programs.emplace_back(std::move(parsed.value()));
     } else {
       has_failed = true;
     }

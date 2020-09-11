@@ -404,7 +404,7 @@ namespace cascade::core {
      * @brief (eagerly) lexes the source string given
      * @return A list of tokens
      */
-    return_type lex();
+    std::vector<token> lex();
 
     /** @brief Implemented as default */
     ~lexer();

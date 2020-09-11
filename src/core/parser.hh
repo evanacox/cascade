@@ -33,31 +33,14 @@
 #include <utility>
 
 namespace cascade::core {
-  /** @brief Handles parsing a single file */
-  class parser {
-    /** @brief Opaque implementation of the parser */
-    class impl;
-
-    /** @brief Owning pointer to the implementation */
-    std::unique_ptr<impl> m_impl;
-
-  public:
-    using return_type = ast::program;
-
-    /**
-     * @brief Creates a parser
-     * @param source string_view to the entire source code for a file
-     * @param report The function that gets called on any errors
-     */
-    explicit parser(
-        lexer::return_type source, std::function<void(std::unique_ptr<errors::error>)> report);
-
-    /** @brief Parses the program */
-    [[nodiscard]] return_type parse();
-
-    /** @brief Explicit destructor due to impl class */
-    ~parser();
-  };
+  /**
+   * @brief Parses a program
+   * @param source List of tokens for a file
+   * @param report The function that gets called on any errors
+   * @return An AST
+   */
+  ast::program parse(
+      lexer::return_type source, std::function<void(std::unique_ptr<errors::error>)> report);
 } // namespace cascade::core
 
 #endif

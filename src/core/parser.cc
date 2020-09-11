@@ -36,6 +36,7 @@
 using namespace cascade;
 using namespace core;
 
+using register_fn = std::function<void(std::unique_ptr<errors::error>)>;
 using srcinfo = source_info;
 using node_ptr = std::unique_ptr<ast::node>;
 using expr_ptr = std::unique_ptr<ast::expression>;
@@ -47,12 +48,12 @@ using ec = errors::error_code;
 
 struct error_sentinel {};
 
-class parser::impl {
+class parser_impl {
   lexer::return_type m_toks;
 
   std::size_t m_index;
 
-  std::function<void(std::unique_ptr<errors::error>)> m_report;
+  register_fn m_report;
 
 public:
   /**
@@ -161,22 +162,20 @@ public:
   [[nodiscard]] stmt_ptr statement();
   [[nodiscard]] decl_ptr declaration();
 
-  explicit impl(
-      lexer::return_type tokens, std::function<void(std::unique_ptr<errors::error>)> report);
+  explicit parser_impl(lexer::return_type tokens, register_fn report);
 
-  parser::return_type parse();
+  ast::program parse();
 };
 
-parser::impl::impl(
-    lexer::return_type tokens, std::function<void(std::unique_ptr<errors::error>)> report)
+parser_impl::parser_impl(lexer::return_type tokens, register_fn report)
     : m_toks(std::move(tokens)), m_index{0}, m_report(std::move(report)) {}
 
-token parser::impl::consume() {
+token parser_impl::consume() {
   assert(!is_at_end() && "program isn't at the end of the tokens and trying to consume()");
   return m_toks[m_index++];
 }
 
-const token &parser::impl::current() const {
+const token &parser_impl::current() const {
   if (is_at_end()) {
     report_error(ec::unexpected_end_of_input, previous());
   }
@@ -184,24 +183,24 @@ const token &parser::impl::current() const {
   return m_toks[m_index];
 }
 
-const token &parser::impl::current_nothrow() const noexcept {
+const token &parser_impl::current_nothrow() const noexcept {
   assert(!is_at_end() && "current_nothrow() isn't being called on end");
   return m_toks[m_index];
 }
 
-const token &parser::impl::previous() const {
+const token &parser_impl::previous() const {
   assert(m_index > 0 && "previous() isn't being called before consume()");
   return m_toks[m_index - 1];
 }
 
-const token &parser::impl::next() const {
+const token &parser_impl::next() const {
   assert(m_index + 1 < m_toks.size() && "next() isn't being called at second-to-last");
   return m_toks[m_index + 1];
 }
 
-bool parser::impl::is_at_end() const { return m_index == m_toks.size(); }
+bool parser_impl::is_at_end() const { return m_index == m_toks.size(); }
 
-void parser::impl::synchronize() {
+void parser_impl::synchronize() {
   while (!is_at_end()) {
     if (current().is(kind::symbol_semicolon)) {
       consume();
@@ -221,13 +220,13 @@ void parser::impl::synchronize() {
   }
 }
 
-void parser::impl::check_end(std::string note) {
+void parser_impl::check_end(std::string note) {
   if (is_at_end()) {
     report_error(ec::unexpected_end_of_input, previous(), note);
   }
 }
 
-void parser::impl::check_semi(std::string note) {
+void parser_impl::check_semi(std::string note) {
   if (is_at_end()) {
     report_error(ec::unexpected_end_of_input, previous(), "Expected a ';'!");
   }
@@ -237,21 +236,21 @@ void parser::impl::check_semi(std::string note) {
   }
 }
 
-void parser::impl::report_error(ec code, core::token tok, std::string note) const {
+void parser_impl::report_error(ec code, core::token tok, std::string note) const {
   m_report(std::make_unique<errors::token_error>(
       code, tok, note == "" ? std::nullopt : std::make_optional(note)));
 
   throw error_sentinel{};
 }
 
-void parser::impl::report_error(ec code, node_ptr node, std::string note) const {
+void parser_impl::report_error(ec code, node_ptr node, std::string note) const {
   m_report(std::make_unique<errors::ast_error>(
       code, std::move(node), note == "" ? std::nullopt : std::make_optional(note)));
 
   throw error_sentinel{};
 }
 
-expr_ptr parser::impl::finish_call(expr_ptr callee) {
+expr_ptr parser_impl::finish_call(expr_ptr callee) {
   consume();
   std::vector<expr_ptr> args;
 
@@ -276,7 +275,7 @@ expr_ptr parser::impl::finish_call(expr_ptr callee) {
       srcinfo::from(callee->info(), close.info()), std::move(callee), std::move(args));
 }
 
-expr_ptr parser::impl::grouping() {
+expr_ptr parser_impl::grouping() {
   if (current().is(kind::symbol_openparen)) {
     auto begin = consume();
 
@@ -302,7 +301,7 @@ expr_ptr parser::impl::grouping() {
   report_error(ec::expected_expression, consume());
 }
 
-expr_ptr parser::impl::block() {
+expr_ptr parser_impl::block() {
   if (current().is_not(kind::symbol_openbrace)) {
     report_error(ec::expected_opening_brace, consume());
   }
@@ -325,7 +324,7 @@ expr_ptr parser::impl::block() {
       std::move(statements), std::make_unique<ast::implied>(srcinfo::from(start.info(), 1)));
 }
 
-expr_ptr parser::impl::primary() {
+expr_ptr parser_impl::primary() {
   if (current().is(kind::literal_number)) {
     auto tok = consume();
     auto number = 0;
@@ -400,7 +399,7 @@ expr_ptr parser::impl::primary() {
   return grouping();
 }
 
-expr_ptr parser::impl::call() {
+expr_ptr parser_impl::call() {
   auto expr = primary();
 
   while (!is_at_end()) {
@@ -458,66 +457,66 @@ expr_ptr parser::impl::call() {
   return expr;
 }
 
-expr_ptr parser::impl::unary() {
+expr_ptr parser_impl::unary() {
   return parse_unary([this]() { return unary(); }, [this]() { return call(); }, kind::symbol_tilde,
       kind::symbol_star, kind::symbol_pound, kind::symbol_at, kind::symbol_plus,
       kind::symbol_hyphen, kind::keyword_clone);
 }
 
-expr_ptr parser::impl::multiplication() {
+expr_ptr parser_impl::multiplication() {
   return parse_binary([this]() { return unary(); }, kind::symbol_star, kind::symbol_forwardslash,
       kind::symbol_percent);
 }
 
-expr_ptr parser::impl::addition() {
+expr_ptr parser_impl::addition() {
   return parse_binary(
       [this]() { return multiplication(); }, kind::symbol_plus, kind::symbol_hyphen);
 }
 
-expr_ptr parser::impl::bitshift() {
+expr_ptr parser_impl::bitshift() {
   return parse_binary([this]() { return addition(); }, kind::symbol_gtgt, kind::symbol_ltlt);
 }
 
-expr_ptr parser::impl::bitwise_and() {
+expr_ptr parser_impl::bitwise_and() {
   return parse_binary([this]() { return bitshift(); }, kind::symbol_pound);
 }
 
-expr_ptr parser::impl::bitwise_xor() {
+expr_ptr parser_impl::bitwise_xor() {
   return parse_binary([this]() { return bitwise_and(); }, kind::symbol_caret);
 }
 
-expr_ptr parser::impl::bitwise_or() {
+expr_ptr parser_impl::bitwise_or() {
   return parse_binary([this]() { return bitwise_xor(); }, kind::symbol_pipe);
 }
 
-expr_ptr parser::impl::relational() {
+expr_ptr parser_impl::relational() {
   return parse_binary([this]() { return bitwise_or(); }, kind::symbol_gt, kind::symbol_geq,
       kind::symbol_lt, kind::symbol_leq);
 }
 
-expr_ptr parser::impl::equality() {
+expr_ptr parser_impl::equality() {
   return parse_binary(
       [this]() { return relational(); }, kind::symbol_equalequal, kind::symbol_bangequal);
 }
 
-expr_ptr parser::impl::logical_not() {
+expr_ptr parser_impl::logical_not() {
   return parse_unary(
       [this]() { return logical_not(); }, [this]() { return equality(); }, kind::keyword_not);
 }
 
-expr_ptr parser::impl::logical_and() {
+expr_ptr parser_impl::logical_and() {
   return parse_binary([this]() { return logical_not(); }, kind::keyword_and);
 }
 
-expr_ptr parser::impl::logical_xor() {
+expr_ptr parser_impl::logical_xor() {
   return parse_binary([this]() { return logical_and(); }, kind::keyword_xor);
 }
 
-expr_ptr parser::impl::logical_or() {
+expr_ptr parser_impl::logical_or() {
   return parse_binary([this]() { return logical_xor(); }, kind::keyword_or);
 }
 
-expr_ptr parser::impl::if_then() {
+expr_ptr parser_impl::if_then() {
   if (current().is(kind::keyword_if)) {
     auto keyword_if = consume();
     auto condition = if_then();
@@ -550,7 +549,7 @@ expr_ptr parser::impl::if_then() {
   return logical_or();
 }
 
-expr_ptr parser::impl::assignment() {
+expr_ptr parser_impl::assignment() {
   auto expr = if_then();
 
   while (!is_at_end() && current().is_assignment()) {
@@ -564,9 +563,9 @@ expr_ptr parser::impl::assignment() {
   return expr;
 }
 
-expr_ptr parser::impl::expression() { return assignment(); }
+expr_ptr parser_impl::expression() { return assignment(); }
 
-type_ptr parser::impl::finish_type() {
+type_ptr parser_impl::finish_type() {
   if (current().is(kind::symbol_star)) {
     auto star = consume();
 
@@ -649,7 +648,7 @@ type_ptr parser::impl::finish_type() {
   report_error(ec::expected_type, current(), "An identifier, *, *mut or [] was expected.");
 }
 
-type_ptr parser::impl::type_with_colon() {
+type_ptr parser_impl::type_with_colon() {
   if (current().is_not(kind::symbol_colon)) {
     report_error(ec::unexpected_tok, consume(), "Expected a ':' before type!");
   }
@@ -678,7 +677,7 @@ type_ptr parser::impl::type_with_colon() {
   return finish_type();
 }
 
-type_ptr parser::impl::type_without_colon() {
+type_ptr parser_impl::type_without_colon() {
   // references can only appear at the very beginning
   if (current().is(kind::symbol_pound)) {
     auto pound = consume();
@@ -701,7 +700,7 @@ type_ptr parser::impl::type_without_colon() {
   return finish_type();
 }
 
-stmt_ptr parser::impl::variable() {
+stmt_ptr parser_impl::variable() {
   auto begin = consume();
 
   if (current().is_not(kind::identifier)) {
@@ -737,7 +736,7 @@ stmt_ptr parser::impl::variable() {
   }
 }
 
-stmt_ptr parser::impl::ret() {
+stmt_ptr parser_impl::ret() {
   auto ret = consume();
   std::optional<expr_ptr> expr = std::nullopt;
 
@@ -754,7 +753,7 @@ stmt_ptr parser::impl::ret() {
   return std::make_unique<ast::ret>(srcinfo::from(ret.info(), semi.info()), std::move(expr));
 }
 
-stmt_ptr parser::impl::loop() {
+stmt_ptr parser_impl::loop() {
   auto begin = consume();
 
   if (begin.is(kind::keyword_loop)) {
@@ -771,11 +770,11 @@ stmt_ptr parser::impl::loop() {
   }
 }
 
-stmt_ptr parser::impl::assert_stmt() { return nullptr; }
+stmt_ptr parser_impl::assert_stmt() { return nullptr; }
 
-stmt_ptr parser::impl::break_continue() { return nullptr; }
+stmt_ptr parser_impl::break_continue() { return nullptr; }
 
-stmt_ptr parser::impl::expr_statement() {
+stmt_ptr parser_impl::expr_statement() {
   auto expr = expression();
 
   if (current().is(kind::symbol_semicolon)) {
@@ -793,7 +792,7 @@ stmt_ptr parser::impl::expr_statement() {
   report_error(ec::expected_semi, current(), "Expected a ';' after the expression");
 }
 
-stmt_ptr parser::impl::statement() {
+stmt_ptr parser_impl::statement() {
   if (current().is_one_of(kind::keyword_let, kind::keyword_mut)) {
     return variable();
   }
@@ -817,9 +816,9 @@ stmt_ptr parser::impl::statement() {
   return expr_statement();
 }
 
-decl_ptr parser::impl::import_decl() { return nullptr; }
+decl_ptr parser_impl::import_decl() { return nullptr; }
 
-decl_ptr parser::impl::module_decl() {
+decl_ptr parser_impl::module_decl() {
   auto begin = consume();
 
   if (current().is_not(kind::identifier)) {
@@ -836,7 +835,7 @@ decl_ptr parser::impl::module_decl() {
       srcinfo::from(begin.info(), semi.info()), std::string{name.raw()});
 }
 
-decl_ptr parser::impl::export_decl() {
+decl_ptr parser_impl::export_decl() {
   auto begin = consume();
   auto decl = declaration();
 
@@ -848,7 +847,7 @@ decl_ptr parser::impl::export_decl() {
       srcinfo::from(begin.info(), decl->info()), std::move(decl));
 }
 
-decl_ptr parser::impl::const_static() {
+decl_ptr parser_impl::const_static() {
   auto begin = consume();
 
   if (current().is_not(kind::identifier)) {
@@ -884,7 +883,7 @@ decl_ptr parser::impl::const_static() {
   }
 }
 
-decl_ptr parser::impl::type_decl() {
+decl_ptr parser_impl::type_decl() {
   auto begin = consume();
 
   if (current().is_not(kind::identifier)) {
@@ -909,7 +908,7 @@ decl_ptr parser::impl::type_decl() {
       srcinfo::from(begin.info(), semi.info()), std::move(type), std::string{name.raw()});
 }
 
-decl_ptr parser::impl::fn() {
+decl_ptr parser_impl::fn() {
   auto begin = consume();
 
   if (current().is_not(kind::identifier)) {
@@ -964,7 +963,7 @@ decl_ptr parser::impl::fn() {
       std::string{name.raw()}, std::move(args), std::move(return_type), std::move(body));
 }
 
-decl_ptr parser::impl::declaration() {
+decl_ptr parser_impl::declaration() {
   switch (current().type()) {
     case kind::keyword_const:
     case kind::keyword_static:
@@ -984,7 +983,7 @@ decl_ptr parser::impl::declaration() {
   }
 }
 
-parser::return_type parser::impl::parse() {
+ast::program parser_impl::parse() {
   std::vector<decl_ptr> decls;
   auto has_module = false;
 
@@ -1008,12 +1007,11 @@ parser::return_type parser::impl::parse() {
     }
   }
 
-  return parser::return_type(std::move(decls));
+  return ast::program(std::move(decls));
 }
 
-parser::parser(lexer::return_type toks, std::function<void(std::unique_ptr<errors::error>)> report)
-    : m_impl(std::make_unique<parser::impl>(std::move(toks), std::move(report))) {}
+ast::program core::parse(std::vector<token> source, register_fn report) {
+  parser_impl parser(std::move(source), std::move(report));
 
-parser::return_type parser::parse() { return m_impl->parse(); }
-
-parser::~parser() = default;
+  return parser.parse();
+}

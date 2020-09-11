@@ -54,6 +54,8 @@ void detail::normalize(detail::file_source &ref) {
   return true;
 }
 
+#include <iostream>
+
 opt_file_list file_reader::read(options &opts) {
   std::vector<detail::file_source> sources;
 
@@ -89,9 +91,15 @@ opt_file_list file_reader::read(options &opts) {
       continue;
     }
 
-    // if nothing goes wrong, construct a string in-place from
-    // streambuf iterators
-    std::string str{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+    std::string str;
+    stream.seekg(0, std::ios_base::end);
+    auto length = stream.tellg();
+    str.resize(length);
+
+    std::cout << "length: " << length << "\n";
+
+    stream.seekg(0, std::ios::beg);
+    stream.read(str.data(), length);
 
     if (!is_valid_utf8(str)) {
       had_error = true;

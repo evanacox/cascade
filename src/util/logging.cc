@@ -27,9 +27,9 @@
 #include "ast/detail/types.hh"
 #include "errors/error_lookup.hh"
 #include "errors/error_visitor.hh"
-#include "fmt/core.h"
 #include "util/keywords.hh"
 #include "util/types.hh"
+#include <fmt/core.h>
 #include <fmt/format.h>
 #include <fstream>
 #include <iostream>
@@ -447,21 +447,21 @@ void ast_printer::visit(ast::expression_statement &stmt) {
 
 void ast_printer::visit(ast::let &stmt) {
   std::cout << "let {\n";
-  fmt::print("{}  initializer: ", m_prefix);
-  accept_with_prefix(stmt.initializer());
   fmt::print("{}  type: ", m_prefix);
   stmt.type().accept(*this);
   fmt::print("{}  name: '{}'\n", m_prefix, stmt.name());
+  fmt::print("{}  initializer: ", m_prefix);
+  accept_with_prefix(stmt.initializer());
   fmt::print("{}}}\n", m_prefix);
 }
 
 void ast_printer::visit(ast::mut &stmt) {
   std::cout << "mut {\n";
-  fmt::print("{}  initializer: ", m_prefix);
-  accept_with_prefix(stmt.initializer());
   fmt::print("{}  type: ", m_prefix);
   stmt.type().accept(*this);
   fmt::print("{}  name: '{}'\n", m_prefix, stmt.name());
+  fmt::print("{}  initializer: ", m_prefix);
+  accept_with_prefix(stmt.initializer());
   fmt::print("{}}}\n", m_prefix);
 }
 

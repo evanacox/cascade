@@ -1,2 +1,2 @@
 # cascade
-The Cascade language 
+The compiler for the Cascade language. 
