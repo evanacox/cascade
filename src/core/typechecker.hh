@@ -29,22 +29,14 @@
 #include <utility>
 
 namespace cascade::core {
-  /** @brief Represents the typechecker, handles the symbol table, and resolving types */
-  class typechecker {
-    /** @brief Opaque implementation class */
-    class impl;
+  using report_fn = std::function<void(std::unique_ptr<errors::error>)>;
 
-    /** @brief Pointer to the implementation */
-    std::unique_ptr<impl> m_impl;
-
-  public:
-    /**
-     * @brief Creates a typechecker
-     * @param programs The list of programs to typecheck
-     */
-    explicit typechecker(const std::vector<ast::program> &programs,
-        std::function<void(std::unique_ptr<errors::error>)> report);
-  };
+  /**
+   * @brief Typechecks a list of programs
+   * @param programs All the modules to attempt to combine
+   * @param report The function to call for each error
+   */
+  bool typecheck(const std::vector<ast::program> &programs, report_fn report);
 } // namespace cascade::core
 
 #endif
