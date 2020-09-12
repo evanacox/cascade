@@ -22,6 +22,7 @@
  *---------------------------------------------------------------------------*/
 
 #include "ast/ast.hh"
+#include <string>
 #include <utility>
 
 namespace cascade::util {
@@ -34,8 +35,17 @@ namespace cascade::util {
    * @param builtin_fn The function to call on builtins
    * @param userdef_fn The function to call on user-def types
    */
-  void traverse_type(ast::type_base &node, std::function<void(ast::pointer &)> ptr_fn,
-      std::function<void(ast::reference &)> ref_fn, std::function<void(ast::array &)> array_fn,
+  void traverse_type(ast::type_base &node,
+      std::function<void(ast::pointer &)> ptr_fn,
+      std::function<void(ast::reference &)> ref_fn,
+      std::function<void(ast::array &)> array_fn,
       std::function<void(ast::builtin &)> builtin_fn,
       std::function<void(ast::user_defined &)> userdef_fn);
+
+  /**
+   * @brief Turns the type into a string, function used throughout codebase for consistency
+   * @param node The type to transform
+   * @return A string of the type
+   */
+  std::string to_string(ast::type_base &node);
 } // namespace cascade::util

@@ -79,7 +79,8 @@ class parser_impl {
 public:
   /**
    * @brief Template for parsing a binary expression
-   * @param next_level A lambda / function pointer / functor that returns the next precedence level
+   * @param next_level A lambda / function pointer / functor that returns the next
+   * precedence level
    * @param kinds The token types to check for inside the `while` loop
    * @return An expression pointer
    */
@@ -91,8 +92,10 @@ public:
       auto op = consume();
       expr_ptr rhs = next_level();
 
-      expr = std::make_unique<ast::binary>(
-          srcinfo::from(expr->info(), rhs->info()), op.type(), std::move(expr), std::move(rhs));
+      expr = std::make_unique<ast::binary>(srcinfo::from(expr->info(), rhs->info()),
+          op.type(),
+          std::move(expr),
+          std::move(rhs));
     }
 
     return expr;
@@ -111,8 +114,9 @@ public:
       auto op = consume();
       expr_ptr rhs = curr_lvl();
 
-      return std::make_unique<ast::unary>(
-          srcinfo::from(op.info(), rhs->info()), op.type(), std::move(rhs));
+      return std::make_unique<ast::unary>(srcinfo::from(op.info(), rhs->info()),
+          op.type(),
+          std::move(rhs));
     }
 
     return next_lvl();
@@ -191,7 +195,9 @@ public:
 };
 
 parser_impl::parser_impl(lexer::return_type tokens, register_fn report)
-    : m_toks(std::move(tokens)), m_index{0}, m_report(std::move(report)) {}
+    : m_toks(std::move(tokens))
+    , m_index{0}
+    , m_report(std::move(report)) {}
 
 token parser_impl::consume() {
   assert(!is_at_end() && "program isn't at the end of the tokens and trying to consume()");
@@ -231,13 +237,18 @@ void parser_impl::synchronize() {
       return;
     }
 
-    if (current().is_one_of(kind::keyword_if, kind::keyword_else, kind::keyword_then,
-            kind::keyword_fn, kind::keyword_let, kind::keyword_mut, kind::keyword_ret,
-            kind::keyword_import, kind::keyword_export, kind::keyword_module, kind::keyword_as,
-            kind::keyword_pub, kind::keyword_assert, kind::symbol_closebrace,
-            kind::symbol_closeparen, kind::symbol_closebracket)) {
+    // clang-format off
+    if (current().is_one_of(
+      kind::keyword_if,     kind::keyword_else,      kind::keyword_then, 
+      kind::keyword_fn,     kind::keyword_let,       kind::keyword_mut,
+      kind::keyword_ret,    kind::keyword_import,    kind::keyword_export,
+      kind::keyword_module, kind::keyword_as,        kind::keyword_pub,
+      kind::keyword_assert, kind::symbol_closebrace, kind::symbol_closeparen,
+      kind::symbol_closebracket)) 
+    {
       return;
     }
+    // clang-format on
 
     consume();
   }
@@ -260,27 +271,31 @@ void parser_impl::check_semi(std::string note) {
 }
 
 void parser_impl::report_error(ec code, core::token tok, std::string note) const {
-  m_report(std::make_unique<errors::token_error>(
-      code, tok, note == "" ? std::nullopt : std::make_optional(note)));
+  m_report(std::make_unique<errors::token_error>(code,
+      tok,
+      note == "" ? std::nullopt : std::make_optional(note)));
 
   throw error_sentinel{};
 }
 
 void parser_impl::report_error(ec code, node_ptr node, std::string note) const {
-  m_report(std::make_unique<errors::ast_error>(
-      code, std::move(node), note == "" ? std::nullopt : std::make_optional(note)));
+  m_report(std::make_unique<errors::ast_error>(code,
+      std::move(node),
+      note == "" ? std::nullopt : std::make_optional(note)));
 
   throw error_sentinel{};
 }
 
 void parser_impl::report_nothrow(ec code, core::token tok, std::string note) const noexcept {
-  m_report(std::make_unique<errors::token_error>(
-      code, tok, note == "" ? std::nullopt : std::make_optional(note)));
+  m_report(std::make_unique<errors::token_error>(code,
+      tok,
+      note == "" ? std::nullopt : std::make_optional(note)));
 }
 
 void parser_impl::report_nothrow(ec code, node_ptr node, std::string note) const noexcept {
-  m_report(std::make_unique<errors::ast_error>(
-      code, std::move(node), note == "" ? std::nullopt : std::make_optional(note)));
+  m_report(std::make_unique<errors::ast_error>(code,
+      std::move(node),
+      note == "" ? std::nullopt : std::make_optional(note)));
 }
 
 expr_ptr parser_impl::finish_call(expr_ptr callee) {
@@ -304,8 +319,9 @@ expr_ptr parser_impl::finish_call(expr_ptr callee) {
 
   auto close = consume();
 
-  return std::make_unique<ast::call>(
-      srcinfo::from(callee->info(), close.info()), std::move(callee), std::move(args));
+  return std::make_unique<ast::call>(srcinfo::from(callee->info(), close.info()),
+      std::move(callee),
+      std::move(args));
 }
 
 expr_ptr parser_impl::grouping() {
@@ -354,7 +370,8 @@ expr_ptr parser_impl::block() {
   auto close = consume();
 
   return std::make_unique<ast::block>(srcinfo::from(start.info(), close.info()),
-      std::move(statements), std::make_unique<ast::implied>(srcinfo::from(start.info(), 1)));
+      std::move(statements),
+      std::make_unique<ast::implied>(srcinfo::from(start.info(), 1)));
 }
 
 expr_ptr parser_impl::primary() {
@@ -389,7 +406,8 @@ expr_ptr parser_impl::primary() {
       throw std::invalid_argument(fmt::format("bad argument to std::stof. tok: '{}'", tok.raw()));
     } // stof can throw if the string doesn't fit
     catch (std::out_of_range &) {
-      report_error(ec::number_literal_too_large, std::move(tok),
+      report_error(ec::number_literal_too_large,
+          std::move(tok),
           "float literals are of type 'f32' and must fit inside that");
     }
   }
@@ -454,13 +472,15 @@ expr_ptr parser_impl::call() {
       if (current().is(kind::symbol_closebracket)) {
         auto close = consume();
 
-        expr = std::make_unique<ast::index>(
-            srcinfo::from(expr->info(), close.info()), std::move(expr), std::move(index));
+        expr = std::make_unique<ast::index>(srcinfo::from(expr->info(), close.info()),
+            std::move(expr),
+            std::move(index));
 
         continue;
       }
 
-      report_error(ec::expected_closing_bracket, consume(),
+      report_error(ec::expected_closing_bracket,
+          consume(),
           "Expected a ']' to finish index access expression");
     }
 
@@ -468,7 +488,8 @@ expr_ptr parser_impl::call() {
       auto dot = consume();
 
       if (is_at_end()) {
-        report_error(ec::unexpected_end_of_input, previous(),
+        report_error(ec::unexpected_end_of_input,
+            previous(),
             "Expected a field or method name, but got EOF.");
       }
 
@@ -478,8 +499,9 @@ expr_ptr parser_impl::call() {
 
       auto id = consume();
 
-      expr = std::make_unique<ast::field_access>(
-          srcinfo::from(expr->info(), id.info()), std::move(expr), std::string{id.raw()});
+      expr = std::make_unique<ast::field_access>(srcinfo::from(expr->info(), id.info()),
+          std::move(expr),
+          std::string{id.raw()});
 
       continue;
     }
@@ -491,19 +513,28 @@ expr_ptr parser_impl::call() {
 }
 
 expr_ptr parser_impl::unary() {
-  return parse_unary([this]() { return unary(); }, [this]() { return call(); }, kind::symbol_tilde,
-      kind::symbol_star, kind::symbol_pound, kind::symbol_at, kind::symbol_plus,
-      kind::symbol_hyphen, kind::keyword_clone);
+  return parse_unary([this]() { return unary(); },
+      [this]() { return call(); },
+      kind::symbol_tilde,
+      kind::symbol_star,
+      kind::symbol_pound,
+      kind::symbol_at,
+      kind::symbol_plus,
+      kind::symbol_hyphen,
+      kind::keyword_clone);
 }
 
 expr_ptr parser_impl::multiplication() {
-  return parse_binary([this]() { return unary(); }, kind::symbol_star, kind::symbol_forwardslash,
+  return parse_binary([this]() { return unary(); },
+      kind::symbol_star,
+      kind::symbol_forwardslash,
       kind::symbol_percent);
 }
 
 expr_ptr parser_impl::addition() {
-  return parse_binary(
-      [this]() { return multiplication(); }, kind::symbol_plus, kind::symbol_hyphen);
+  return parse_binary([this]() { return multiplication(); },
+      kind::symbol_plus,
+      kind::symbol_hyphen);
 }
 
 expr_ptr parser_impl::bitshift() {
@@ -523,18 +554,23 @@ expr_ptr parser_impl::bitwise_or() {
 }
 
 expr_ptr parser_impl::relational() {
-  return parse_binary([this]() { return bitwise_or(); }, kind::symbol_gt, kind::symbol_geq,
-      kind::symbol_lt, kind::symbol_leq);
+  return parse_binary([this]() { return bitwise_or(); },
+      kind::symbol_gt,
+      kind::symbol_geq,
+      kind::symbol_lt,
+      kind::symbol_leq);
 }
 
 expr_ptr parser_impl::equality() {
-  return parse_binary(
-      [this]() { return relational(); }, kind::symbol_equalequal, kind::symbol_bangequal);
+  return parse_binary([this]() { return relational(); },
+      kind::symbol_equalequal,
+      kind::symbol_bangequal);
 }
 
 expr_ptr parser_impl::logical_not() {
-  return parse_unary(
-      [this]() { return logical_not(); }, [this]() { return equality(); }, kind::keyword_not);
+  return parse_unary([this]() { return logical_not(); },
+      [this]() { return equality(); },
+      kind::keyword_not);
 }
 
 expr_ptr parser_impl::logical_and() {
@@ -557,8 +593,8 @@ expr_ptr parser_impl::if_then() {
     // if `then` was present, if and else both need to be parsed slightly differently
     auto is_then = current().is(kind::keyword_then);
 
-    // if `then`, it needs to be consumed and an expression parsed. (',' evaluates lhs and returns
-    // rhs) if not, return a block
+    // if `then`, it needs to be consumed and an expression parsed. (',' evaluates lhs and
+    // returns rhs) if not, return a block
     auto true_clause = (is_then) ? consume(), if_then() : block();
 
     if (current().is(kind::keyword_else)) {
@@ -566,17 +602,23 @@ expr_ptr parser_impl::if_then() {
       auto false_clause = (is_then) ? if_then() : block();
 
       return std::make_unique<ast::if_else>(srcinfo::from(keyword_if.info(), false_clause->info()),
-          std::move(condition), std::move(true_clause), std::move(false_clause));
+          std::move(condition),
+          std::move(true_clause),
+          std::move(false_clause));
     }
 
     if (is_then) {
       report_error(ec::expected_else_after_then,
           std::make_unique<ast::if_else>(srcinfo::from(keyword_if.info(), true_clause->info()),
-              std::move(condition), std::move(true_clause), std::nullopt));
+              std::move(condition),
+              std::move(true_clause),
+              std::nullopt));
     }
 
     return std::make_unique<ast::if_else>(srcinfo::from(keyword_if.info(), true_clause->info()),
-        std::move(condition), std::move(true_clause), std::nullopt);
+        std::move(condition),
+        std::move(true_clause),
+        std::nullopt);
   }
 
   return logical_or();
@@ -589,8 +631,10 @@ expr_ptr parser_impl::assignment() {
     auto op = consume();
     auto rhs = assignment();
 
-    expr = std::make_unique<ast::binary>(
-        srcinfo::from(expr->info(), rhs->info()), op.type(), std::move(expr), std::move(rhs));
+    expr = std::make_unique<ast::binary>(srcinfo::from(expr->info(), rhs->info()),
+        op.type(),
+        std::move(expr),
+        std::move(rhs));
   }
 
   return expr;
@@ -607,14 +651,16 @@ type_ptr parser_impl::finish_type() {
 
       auto type = finish_type();
 
-      return std::make_unique<ast::pointer>(
-          srcinfo::from(star.info(), type->info()), ast::pointer_type::mut_ptr, std::move(type));
+      return std::make_unique<ast::pointer>(srcinfo::from(star.info(), type->info()),
+          ast::pointer_type::mut_ptr,
+          std::move(type));
     }
 
     auto type = finish_type();
 
-    return std::make_unique<ast::pointer>(
-        srcinfo::from(star.info(), type->info()), ast::pointer_type::ptr, std::move(type));
+    return std::make_unique<ast::pointer>(srcinfo::from(star.info(), type->info()),
+        ast::pointer_type::ptr,
+        std::move(type));
   }
 
   if (current().is(kind::symbol_openbracket)) {
@@ -628,8 +674,9 @@ type_ptr parser_impl::finish_type() {
 
     auto type = finish_type();
 
-    return std::make_unique<ast::array>(
-        srcinfo::from(open.info(), type->info()), 0, std::move(type));
+    return std::make_unique<ast::array>(srcinfo::from(open.info(), type->info()),
+        0,
+        std::move(type));
   }
 
   if (current().is(kind::identifier)) {
@@ -697,14 +744,16 @@ type_ptr parser_impl::type_with_colon() {
 
       auto type = finish_type();
 
-      return std::make_unique<ast::reference>(
-          srcinfo::from(pound.info(), type->info()), ast::reference_type::mut_ref, std::move(type));
+      return std::make_unique<ast::reference>(srcinfo::from(pound.info(), type->info()),
+          ast::reference_type::mut_ref,
+          std::move(type));
     }
 
     auto type = finish_type();
 
-    return std::make_unique<ast::reference>(
-        srcinfo::from(pound.info(), type->info()), ast::reference_type::ref, std::move(type));
+    return std::make_unique<ast::reference>(srcinfo::from(pound.info(), type->info()),
+        ast::reference_type::ref,
+        std::move(type));
   }
 
   return finish_type();
@@ -720,14 +769,16 @@ type_ptr parser_impl::type_without_colon() {
 
       auto type = finish_type();
 
-      return std::make_unique<ast::reference>(
-          srcinfo::from(pound.info(), type->info()), ast::reference_type::mut_ref, std::move(type));
+      return std::make_unique<ast::reference>(srcinfo::from(pound.info(), type->info()),
+          ast::reference_type::mut_ref,
+          std::move(type));
     }
 
     auto type = finish_type();
 
-    return std::make_unique<ast::reference>(
-        srcinfo::from(pound.info(), type->info()), ast::reference_type::ref, std::move(type));
+    return std::make_unique<ast::reference>(srcinfo::from(pound.info(), type->info()),
+        ast::reference_type::ref,
+        std::move(type));
   }
 
   return finish_type();
@@ -737,7 +788,8 @@ stmt_ptr parser_impl::variable() {
   auto begin = consume();
 
   if (current().is_not(kind::identifier)) {
-    report_error(ec::expected_identifier, consume(),
+    report_error(ec::expected_identifier,
+        consume(),
         fmt::format("Expected an identifier after keyword '{}'.", begin.raw()));
   }
 
@@ -761,11 +813,15 @@ stmt_ptr parser_impl::variable() {
   auto semi = consume();
 
   if (begin.is(kind::keyword_let)) {
-    return std::make_unique<ast::let>(srcinfo::from(begin.info(), semi.info()), std::move(expr),
-        std::move(var_type), std::string{id.raw()});
+    return std::make_unique<ast::let>(srcinfo::from(begin.info(), semi.info()),
+        std::move(expr),
+        std::move(var_type),
+        std::string{id.raw()});
   } else {
-    return std::make_unique<ast::mut>(srcinfo::from(begin.info(), semi.info()), std::move(expr),
-        std::move(var_type), std::string{id.raw()});
+    return std::make_unique<ast::mut>(srcinfo::from(begin.info(), semi.info()),
+        std::move(expr),
+        std::move(var_type),
+        std::string{id.raw()});
   }
 }
 
@@ -792,14 +848,16 @@ stmt_ptr parser_impl::loop() {
   if (begin.is(kind::keyword_loop)) {
     auto body = expression();
 
-    return std::make_unique<ast::loop>(
-        srcinfo::from(begin.info(), body->info()), std::nullopt, std::move(body));
+    return std::make_unique<ast::loop>(srcinfo::from(begin.info(), body->info()),
+        std::nullopt,
+        std::move(body));
   } else {
     auto condition = expression();
     auto body = expression();
 
-    return std::make_unique<ast::loop>(
-        srcinfo::from(begin.info(), body->info()), std::move(condition), std::move(body));
+    return std::make_unique<ast::loop>(srcinfo::from(begin.info(), body->info()),
+        std::move(condition),
+        std::move(body));
   }
 }
 
@@ -813,8 +871,8 @@ stmt_ptr parser_impl::expr_statement() {
   if (current().is(kind::symbol_semicolon)) {
     auto semi = consume();
 
-    return std::make_unique<ast::expression_statement>(
-        srcinfo::from(expr->info(), semi.info()), std::move(expr));
+    return std::make_unique<ast::expression_statement>(srcinfo::from(expr->info(), semi.info()),
+        std::move(expr));
   }
 
   // expressions w/ blocks don't need semis
@@ -861,16 +919,17 @@ decl_ptr parser_impl::module_decl() {
   auto name = consume();
 
   if (is_builtin(name)) {
-    report_nothrow(
-        ec::unexpected_builtin, name, "Expected a module name, got a reserved builtin name!");
+    report_nothrow(ec::unexpected_builtin,
+        name,
+        "Expected a module name, got a reserved builtin name!");
   }
 
   check_semi("Expected a ';' after initializer!");
 
   auto semi = consume();
 
-  return std::make_unique<ast::module_decl>(
-      srcinfo::from(begin.info(), semi.info()), std::string{name.raw()});
+  return std::make_unique<ast::module_decl>(srcinfo::from(begin.info(), semi.info()),
+      std::string{name.raw()});
 }
 
 decl_ptr parser_impl::export_decl() {
@@ -881,23 +940,25 @@ decl_ptr parser_impl::export_decl() {
     report_error(ec::cannot_export_export, std::move(decl), "Cannot export an export declaration!");
   }
 
-  return std::make_unique<ast::export_decl>(
-      srcinfo::from(begin.info(), decl->info()), std::move(decl));
+  return std::make_unique<ast::export_decl>(srcinfo::from(begin.info(), decl->info()),
+      std::move(decl));
 }
 
 decl_ptr parser_impl::const_static() {
   auto begin = consume();
 
   if (current().is_not(kind::identifier)) {
-    report_error(ec::expected_identifier, consume(),
+    report_error(ec::expected_identifier,
+        consume(),
         fmt::format("Expected an identifier after keyword '{}'!", begin.raw()));
   }
 
   auto id = consume();
 
   if (is_builtin(id)) {
-    report_nothrow(
-        ec::unexpected_builtin, id, "Expected a variable name, got a reserved builtin name!");
+    report_nothrow(ec::unexpected_builtin,
+        id,
+        "Expected a variable name, got a reserved builtin name!");
   }
 
   // type has to be explicitly the base
@@ -919,10 +980,14 @@ decl_ptr parser_impl::const_static() {
 
   if (begin.is(kind::keyword_const)) {
     return std::make_unique<ast::const_decl>(srcinfo::from(begin.info(), semi.info()),
-        std::string{id.raw()}, std::move(expr), std::move(var_type));
+        std::string{id.raw()},
+        std::move(expr),
+        std::move(var_type));
   } else {
     return std::make_unique<ast::static_decl>(srcinfo::from(begin.info(), semi.info()),
-        std::string{id.raw()}, std::move(expr), std::move(var_type));
+        std::string{id.raw()},
+        std::move(expr),
+        std::move(var_type));
   }
 }
 
@@ -936,8 +1001,9 @@ decl_ptr parser_impl::type_decl() {
   auto name = consume();
 
   if (is_builtin(name)) {
-    report_nothrow(
-        ec::unexpected_builtin, name, "Expected a type alias name, got a reserved builtin name!");
+    report_nothrow(ec::unexpected_builtin,
+        name,
+        "Expected a type alias name, got a reserved builtin name!");
   }
 
   if (current().is_not(kind::symbol_equal)) {
@@ -952,16 +1018,18 @@ decl_ptr parser_impl::type_decl() {
 
   auto semi = consume();
 
-  return std::make_unique<ast::type_decl>(
-      srcinfo::from(begin.info(), semi.info()), std::move(type), std::string{name.raw()});
+  return std::make_unique<ast::type_decl>(srcinfo::from(begin.info(), semi.info()),
+      std::move(type),
+      std::string{name.raw()});
 }
 
 decl_ptr parser_impl::fn() {
   auto begin = consume();
 
   if (current().is_not(kind::identifier)) {
-    report_error(
-        ec::expected_identifier, consume(), "Expected an identifier for the function name!");
+    report_error(ec::expected_identifier,
+        consume(),
+        "Expected an identifier for the function name!");
   }
 
   auto name = consume();
@@ -991,7 +1059,8 @@ decl_ptr parser_impl::fn() {
 
     auto arg_type = type_with_colon();
 
-    args.emplace_back(srcinfo::from(arg_name.info(), arg_type->info()), std::string{arg_name.raw()},
+    args.emplace_back(srcinfo::from(arg_name.info(), arg_type->info()),
+        std::string{arg_name.raw()},
         std::move(arg_type));
 
     if (current().is_not(kind::symbol_closeparen)) {
@@ -1007,12 +1076,15 @@ decl_ptr parser_impl::fn() {
 
   auto return_type = (current().is(kind::symbol_colon))
                          ? type_with_colon()
-                         : std::make_unique<ast::implied>(previous().info());
+                         : std::make_unique<ast::void_type>(previous().info());
 
   auto body = block();
 
   return std::make_unique<ast::fn>(srcinfo::from(begin.info(), body->info()),
-      std::string{name.raw()}, std::move(args), std::move(return_type), std::move(body));
+      std::string{name.raw()},
+      std::move(args),
+      std::move(return_type),
+      std::move(body));
 }
 
 decl_ptr parser_impl::declaration() {
@@ -1046,7 +1118,8 @@ ast::program parser_impl::parse() {
 
       if (decl->is(ast::kind::declaration_module)) {
         if (has_module) {
-          report_error(ec::duplicate_module, std::move(decl),
+          report_error(ec::duplicate_module,
+              std::move(decl),
               "You can only have one module declaration per file.");
         }
 

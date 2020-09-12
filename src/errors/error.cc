@@ -29,6 +29,7 @@ using namespace errors;
 std::unique_ptr<error> error::from(errors::error_code code, core::token tok, std::string note) {
   // I would change the return type to unique_ptr<token_error>
   // but it might change
-  return std::make_unique<token_error>(
-      code, tok, note == "" ? std::nullopt : std::make_optional(note));
+  return std::make_unique<token_error>(code,
+      tok,
+      note == "" ? std::nullopt : std::make_optional(note));
 }

@@ -44,12 +44,14 @@ namespace cascade::ast {
      * @param init The initializer
      * @param type The type of the declaration
      */
-    explicit const_decl(core::source_info info, std::string name, std::unique_ptr<expression> init,
+    explicit const_decl(core::source_info info,
+        std::string name,
+        std::unique_ptr<expression> init,
         std::unique_ptr<type_base> type)
-        : declaration(kind::declaration_const, std::move(info)),
-          m_name(std::move(name)),
-          m_initializer(std::move(init)),
-          m_type(std::move(type)) {}
+        : declaration(kind::declaration_const, std::move(info))
+        , m_name(std::move(name))
+        , m_initializer(std::move(init))
+        , m_type(std::move(type)) {}
 
     /** @brief Gets the name of the declaration */
     [[nodiscard]] std::string_view name() const { return m_name; }
@@ -75,12 +77,14 @@ namespace cascade::ast {
      * @param init The initializer
      * @param type The type of the declaration
      */
-    explicit static_decl(core::source_info info, std::string name, std::unique_ptr<expression> init,
+    explicit static_decl(core::source_info info,
+        std::string name,
+        std::unique_ptr<expression> init,
         std::unique_ptr<type_base> type)
-        : declaration(kind::declaration_static, std::move(info)),
-          m_name(std::move(name)),
-          m_initializer(std::move(init)),
-          m_type(std::move(type)) {}
+        : declaration(kind::declaration_static, std::move(info))
+        , m_name(std::move(name))
+        , m_initializer(std::move(init))
+        , m_type(std::move(type)) {}
 
     /** @brief Gets the name of the declaration */
     [[nodiscard]] std::string_view name() const { return m_name; }
@@ -99,9 +103,9 @@ namespace cascade::ast {
 
   public:
     explicit argument(core::source_info info, std::string name, std::unique_ptr<type_base> type)
-        : declaration(kind::declaration_argument, std::move(info)),
-          m_name(std::move(name)),
-          m_type(std::move(type)) {}
+        : declaration(kind::declaration_argument, std::move(info))
+        , m_name(std::move(name))
+        , m_type(std::move(type)) {}
 
     /** @brief Returns the name of the argument */
     [[nodiscard]] std::string_view name() const { return m_name; }
@@ -125,13 +129,16 @@ namespace cascade::ast {
      * @param args List of arguments and their type signatures
      * @param block The body of the function
      */
-    explicit fn(core::source_info info, std::string name, std::vector<argument> args,
-        std::unique_ptr<type_base> type, std::unique_ptr<expression> block)
-        : declaration(kind::declaration_fn, std::move(info)),
-          m_name(std::move(name)),
-          m_args(std::move(args)),
-          m_return_type(std::move(type)),
-          m_block(std::move(block)) {}
+    explicit fn(core::source_info info,
+        std::string name,
+        std::vector<argument> args,
+        std::unique_ptr<type_base> type,
+        std::unique_ptr<expression> block)
+        : declaration(kind::declaration_fn, std::move(info))
+        , m_name(std::move(name))
+        , m_args(std::move(args))
+        , m_return_type(std::move(type))
+        , m_block(std::move(block)) {}
 
     /** @brief Returns the name of the argument */
     [[nodiscard]] std::string_view name() const { return m_name; }
@@ -157,7 +164,8 @@ namespace cascade::ast {
      * @param name The full module path
      */
     explicit module_decl(core::source_info info, std::string name)
-        : declaration(kind::declaration_module, std::move(info)), m_name(std::move(name)) {}
+        : declaration(kind::declaration_module, std::move(info))
+        , m_name(std::move(name)) {}
 
     /** @brief Returns the module name */
     [[nodiscard]] std::string_view name() const { return m_name; }
@@ -176,12 +184,14 @@ namespace cascade::ast {
      * @param name The full module path
      * @param items The list of items to import (if using `from`)
      */
-    explicit import_decl(core::source_info info, std::string name, std::vector<std::string> items,
+    explicit import_decl(core::source_info info,
+        std::string name,
+        std::vector<std::string> items,
         std::optional<std::string> alias)
-        : declaration(kind::declaration_import, std::move(info)),
-          m_name(std::move(name)),
-          m_items(std::move(items)),
-          m_alias(std::move(alias)) {}
+        : declaration(kind::declaration_import, std::move(info))
+        , m_name(std::move(name))
+        , m_items(std::move(items))
+        , m_alias(std::move(alias)) {}
 
     /** @brief Returns the module name being imported */
     [[nodiscard]] std::string_view name() const { return m_name; }
@@ -204,7 +214,8 @@ namespace cascade::ast {
      * @param exported The entity being exported
      */
     explicit export_decl(core::source_info info, std::unique_ptr<declaration> exported)
-        : declaration(kind::declaration_export, std::move(info)), m_exported(std::move(exported)) {}
+        : declaration(kind::declaration_export, std::move(info))
+        , m_exported(std::move(exported)) {}
 
     /** @brief Returns a pointer to the item being exported */
     [[nodiscard]] declaration &exported() const { return *m_exported; }
@@ -222,9 +233,9 @@ namespace cascade::ast {
      * @param name The name of the alias
      */
     explicit type_decl(core::source_info info, std::unique_ptr<type_base> type, std::string name)
-        : declaration(kind::declaration_type, std::move(info)),
-          m_type(std::move(type)),
-          m_name(std::move(name)) {}
+        : declaration(kind::declaration_type, std::move(info))
+        , m_type(std::move(type))
+        , m_name(std::move(name)) {}
 
     /** @brief Returns a pointer to the item being exported */
     [[nodiscard]] type_base &type() const { return *m_type; }

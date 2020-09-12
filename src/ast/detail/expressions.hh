@@ -34,7 +34,8 @@ namespace cascade::ast {
 
   public:
     explicit identifier(core::source_info info, std::string_view name)
-        : expression(kind::identifier, std::move(info)), m_name(std::string{name}) {}
+        : expression(kind::identifier, std::move(info))
+        , m_name(std::string{name}) {}
 
     [[nodiscard]] std::string_view name() const { return m_name; }
   };
@@ -44,11 +45,12 @@ namespace cascade::ast {
     std::vector<std::unique_ptr<expression>> m_args;
 
   public:
-    explicit call(core::source_info info, std::unique_ptr<expression> callee,
+    explicit call(core::source_info info,
+        std::unique_ptr<expression> callee,
         std::vector<std::unique_ptr<expression>> args)
-        : expression(kind::expression_call, std::move(info)),
-          m_callee(std::move(callee)),
-          m_args(std::move(args)) {}
+        : expression(kind::expression_call, std::move(info))
+        , m_callee(std::move(callee))
+        , m_args(std::move(args)) {}
 
     [[nodiscard]] expression &callee() const { return *m_callee; }
 
@@ -61,12 +63,14 @@ namespace cascade::ast {
     std::unique_ptr<expression> m_rhs;
 
   public:
-    explicit binary(core::source_info info, core::token::kind op, std::unique_ptr<expression> lhs,
+    explicit binary(core::source_info info,
+        core::token::kind op,
+        std::unique_ptr<expression> lhs,
         std::unique_ptr<expression> rhs)
-        : expression(kind::expression_binary, std::move(info)),
-          m_op(op),
-          m_lhs(std::move(lhs)),
-          m_rhs(std::move(rhs)) {}
+        : expression(kind::expression_binary, std::move(info))
+        , m_op(op)
+        , m_lhs(std::move(lhs))
+        , m_rhs(std::move(rhs)) {}
 
     [[nodiscard]] core::token::kind op() const { return m_op; }
 
@@ -81,7 +85,9 @@ namespace cascade::ast {
 
   public:
     explicit unary(core::source_info info, core::token::kind op, std::unique_ptr<expression> rhs)
-        : expression(kind::expression_unary, std::move(info)), m_op(op), m_rhs(std::move(rhs)) {}
+        : expression(kind::expression_unary, std::move(info))
+        , m_op(op)
+        , m_rhs(std::move(rhs)) {}
 
     [[nodiscard]] core::token::kind op() const { return m_op; }
 
@@ -93,11 +99,12 @@ namespace cascade::ast {
     std::string m_field;
 
   public:
-    explicit field_access(
-        core::source_info info, std::unique_ptr<expression> accessed, std::string field)
-        : expression(kind::expression_field_access, std::move(info)),
-          m_accessed(std::move(accessed)),
-          m_field(std::move(field)) {}
+    explicit field_access(core::source_info info,
+        std::unique_ptr<expression> accessed,
+        std::string field)
+        : expression(kind::expression_field_access, std::move(info))
+        , m_accessed(std::move(accessed))
+        , m_field(std::move(field)) {}
 
     [[nodiscard]] expression &accessed() const { return *m_accessed; }
 
@@ -109,11 +116,12 @@ namespace cascade::ast {
     std::unique_ptr<expression> m_index;
 
   public:
-    explicit index(
-        core::source_info info, std::unique_ptr<expression> array, std::unique_ptr<expression> idx)
-        : expression(kind::expression_index, std::move(info)),
-          m_array(std::move(array)),
-          m_index(std::move(idx)) {}
+    explicit index(core::source_info info,
+        std::unique_ptr<expression> array,
+        std::unique_ptr<expression> idx)
+        : expression(kind::expression_index, std::move(info))
+        , m_array(std::move(array))
+        , m_index(std::move(idx)) {}
 
     [[nodiscard]] expression &array() const { return *m_array; }
 
@@ -126,13 +134,14 @@ namespace cascade::ast {
     std::optional<std::unique_ptr<expression>> m_false;
 
   public:
-    explicit if_else(core::source_info info, std::unique_ptr<expression> cond,
+    explicit if_else(core::source_info info,
+        std::unique_ptr<expression> cond,
         std::unique_ptr<expression> true_clause,
         std::optional<std::unique_ptr<expression>> else_clause = std::nullopt)
-        : expression(kind::expression_if_else, std::move(info)),
-          m_condition(std::move(cond)),
-          m_true(std::move(true_clause)),
-          m_false(std::move(else_clause)) {}
+        : expression(kind::expression_if_else, std::move(info))
+        , m_condition(std::move(cond))
+        , m_true(std::move(true_clause))
+        , m_false(std::move(else_clause)) {}
 
     [[nodiscard]] expression &condition() const { return *m_condition; }
 
@@ -153,11 +162,12 @@ namespace cascade::ast {
     std::unique_ptr<type_base> m_return_type;
 
   public:
-    explicit block(core::source_info info, std::vector<std::unique_ptr<statement>> stmts,
+    explicit block(core::source_info info,
+        std::vector<std::unique_ptr<statement>> stmts,
         std::unique_ptr<type_base> type)
-        : expression(kind::expression_block, std::move(info)),
-          m_statements(std::move(stmts)),
-          m_return_type(std::move(type)) {}
+        : expression(kind::expression_block, std::move(info))
+        , m_statements(std::move(stmts))
+        , m_return_type(std::move(type)) {}
 
     [[nodiscard]] const std::vector<std::unique_ptr<statement>> &statements() const {
       return m_statements;
@@ -179,9 +189,9 @@ namespace cascade::ast {
 
   public:
     explicit struct_init(core::source_info info, std::string name, std::vector<pair> inits)
-        : expression(kind::expression_struct, std::move(info)),
-          m_struct_name(std::move(name)),
-          m_init(std::move(inits)) {}
+        : expression(kind::expression_struct, std::move(info))
+        , m_struct_name(std::move(name))
+        , m_init(std::move(inits)) {}
 
     [[nodiscard]] const std::vector<pair> &pairs() const { return m_init; }
 

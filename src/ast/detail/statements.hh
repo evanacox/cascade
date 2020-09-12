@@ -34,7 +34,8 @@ namespace cascade::ast {
 
   public:
     explicit expression_statement(core::source_info info, std::unique_ptr<expression> expr)
-        : statement(kind::statement_expression, std::move(info)), m_expr(std::move(expr)) {}
+        : statement(kind::statement_expression, std::move(info))
+        , m_expr(std::move(expr)) {}
 
     [[nodiscard]] expression &expr() const { return *m_expr; }
   };
@@ -45,12 +46,14 @@ namespace cascade::ast {
     std::string m_name;
 
   public:
-    explicit let(core::source_info info, std::unique_ptr<expression> init,
-        std::unique_ptr<type_base> type, std::string_view name)
-        : statement(kind::statement_let, std::move(info)),
-          m_initializer(std::move(init)),
-          m_type(std::move(type)),
-          m_name(std::string{name}) {}
+    explicit let(core::source_info info,
+        std::unique_ptr<expression> init,
+        std::unique_ptr<type_base> type,
+        std::string_view name)
+        : statement(kind::statement_let, std::move(info))
+        , m_initializer(std::move(init))
+        , m_type(std::move(type))
+        , m_name(std::string{name}) {}
 
     [[nodiscard]] expression &initializer() const { return *m_initializer; }
 
@@ -65,12 +68,14 @@ namespace cascade::ast {
     std::string m_name;
 
   public:
-    explicit mut(core::source_info info, std::unique_ptr<expression> init,
-        std::unique_ptr<type_base> type, std::string_view name)
-        : statement(kind::statement_mut, std::move(info)),
-          m_initializer(std::move(init)),
-          m_type(std::move(type)),
-          m_name(std::string{name}) {}
+    explicit mut(core::source_info info,
+        std::unique_ptr<expression> init,
+        std::unique_ptr<type_base> type,
+        std::string_view name)
+        : statement(kind::statement_mut, std::move(info))
+        , m_initializer(std::move(init))
+        , m_type(std::move(type))
+        , m_name(std::string{name}) {}
 
     [[nodiscard]] expression &initializer() const { return *m_initializer; }
 
@@ -84,7 +89,8 @@ namespace cascade::ast {
 
   public:
     explicit ret(core::source_info info, std::optional<std::unique_ptr<expression>> ret_val)
-        : statement(kind::statement_ret, std::move(info)), m_return_value(std::move(ret_val)) {}
+        : statement(kind::statement_ret, std::move(info))
+        , m_return_value(std::move(ret_val)) {}
 
     [[nodiscard]] std::optional<std::reference_wrapper<expression>> return_value() const {
       if (m_return_value) {
@@ -100,11 +106,12 @@ namespace cascade::ast {
     std::unique_ptr<expression> m_body;
 
   public:
-    explicit loop(core::source_info info, std::optional<std::unique_ptr<expression>> condition,
+    explicit loop(core::source_info info,
+        std::optional<std::unique_ptr<expression>> condition,
         std::unique_ptr<expression> body)
-        : statement(kind::statement_ret, std::move(info)),
-          m_condition(std::move(condition)),
-          m_body(std::move(body)) {}
+        : statement(kind::statement_ret, std::move(info))
+        , m_condition(std::move(condition))
+        , m_body(std::move(body)) {}
 
     [[nodiscard]] std::optional<std::reference_wrapper<expression>> condition() const {
       if (m_condition) {

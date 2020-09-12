@@ -113,9 +113,12 @@ namespace cascade::errors {
      * @param code The error code
      * @param tok The offending token
      */
-    explicit token_error(
-        error_code code, core::token tok, std::optional<std::string> note = std::nullopt)
-        : m_code(code), m_token(std::move(tok)), m_note(std::move(note)) {}
+    explicit token_error(error_code code,
+        core::token tok,
+        std::optional<std::string> note = std::nullopt)
+        : m_code(code)
+        , m_token(std::move(tok))
+        , m_note(std::move(note)) {}
 
     /**
      * @brief Returns the error lookup code
@@ -189,9 +192,12 @@ namespace cascade::errors {
      * @param code The error code
      * @param tok The offending token
      */
-    explicit ast_error(error_code code, std::unique_ptr<ast::node> node,
+    explicit ast_error(error_code code,
+        std::unique_ptr<ast::node> node,
         std::optional<std::string> note = std::nullopt)
-        : m_code(code), m_node(std::move(node)), m_note(std::move(note)) {}
+        : m_code(code)
+        , m_node(std::move(node))
+        , m_note(std::move(note)) {}
 
     /**
      * @brief Returns the error lookup code

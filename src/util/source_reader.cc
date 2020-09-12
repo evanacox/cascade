@@ -37,8 +37,8 @@ void detail::normalize(detail::file_source &ref) {
   ref.m_path = ref.m_path.lexically_normal().lexically_relative(fs::current_path());
 
   // transform CRLF into LF
-  ref.m_source.erase(
-      std::remove(ref.m_source.begin(), ref.m_source.end(), '\r'), ref.m_source.end());
+  ref.m_source.erase(std::remove(ref.m_source.begin(), ref.m_source.end(), '\r'),
+      ref.m_source.end());
 }
 
 /**

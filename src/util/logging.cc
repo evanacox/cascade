@@ -78,8 +78,8 @@ static std::string executable_name() {
   CONSOLE_SCREEN_BUFFER_INFO csbi;
 
   if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
-    return {
-        csbi.srWindow.Bottom - csbi.srWindow.Top + 1, csbi.srWindow.Right - csbi.srWindow.Left + 1};
+    return {csbi.srWindow.Bottom - csbi.srWindow.Top + 1,
+        csbi.srWindow.Right - csbi.srWindow.Left + 1};
   }
 
   return {-1, -1};
@@ -173,68 +173,11 @@ void ast_printer::accept_with_prefix(ast::node &node) {
 void ast_printer::visit(ast::type_base &node) {
   if (node.is(kind::type_implied)) {
     std::cout << "<implied>\n";
-  }
-
-  else if (node.is(kind::type_void)) {
+  } else if (node.is(kind::type_void)) {
     std::cout << "<void>\n";
+  } else {
+    std::cout << util::to_string(node) << "\n";
   }
-
-  else {
-    // Because of the nature of types, the ast::type node is recursive.
-    // It has some children that act like it, but each has a marker, and
-    // a pointer to the type it's modifying ("holding").
-    //
-    // e.g, &mut **mut[]i32 =
-    //   &mut -> * -> *mut -> [] -> i32
-    //
-    // Making a visitor for each would be
-    // pointless, as in any case besides printing the entire type is needed at once.
-
-    // clang-format off
-    traverse_type(node, 
-      [](ast::pointer &ptr) {
-        if (ptr.ptr_type() == ast::pointer_type::mut_ptr) {
-          std::cout << "mut ";
-        } 
-
-        std::cout << "ptr: ";
-      },
-      [](ast::reference &ref) {
-        if (ref.ref_type() == ast::reference_type::mut_ref) {
-          std::cout << "mut ";
-        }
-
-        std::cout << "ref: ";
-      }, 
-      [](ast::array &arr) { 
-        fmt::print("[{}]", arr.length()); 
-      },
-      [](ast::builtin &builtin) {
-        std::cout << "builtin: ";
-
-        switch (builtin.num_type()) {
-          case ast::numeric_type::boolean:
-            std::cout << "bool";
-            break;
-          case ast::numeric_type::integer:
-            fmt::print("i{}", builtin.width());
-            break;
-          case ast::numeric_type::unsigned_integer:
-            fmt::print("u{}", builtin.width());
-            break;
-          case ast::numeric_type::floating_point:
-            fmt::print("f{}", builtin.width());
-            break;
-        }
-      },
-      [](ast::user_defined &userdef) { 
-        fmt::print("userdef: {}", userdef.name()); 
-      }
-    );
-
-    std::cout << "\n";
-  }
-  // clang-format on
 }
 
 void ast_printer::visit(ast::type_decl &decl) {
@@ -495,7 +438,9 @@ void ast_printer::visit(ast::loop &loop) {
 }
 
 void util::error(std::string_view message) {
-  fmt::print("{} {} {}\n", formatted_exe_name(), formatted_error_tag(),
+  fmt::print("{} {} {}\n",
+      formatted_exe_name(),
+      formatted_error_tag(),
       colors::bold_white(std::string{message}));
 }
 
@@ -539,8 +484,10 @@ void logger::error(std::unique_ptr<errors::error> err) { m_impl->error(std::move
 std::string logger::impl::pretty_path(const errors::error &err) const {
   using namespace fmt::literals;
 
-  auto path_line_col = fmt::format("{path}:{line}:{col}", "path"_a = err.path().string(),
-      "line"_a = err.line(), "col"_a = err.column());
+  auto path_line_col = fmt::format("{path}:{line}:{col}",
+      "path"_a = err.path().string(),
+      "line"_a = err.line(),
+      "col"_a = err.column());
 
   return colors::cyan(path_line_col);
 }
@@ -557,8 +504,10 @@ void logger::impl::print_start(const errors::error &e) const {
   // if the path can fit on the current line without wrapping
   if (msg.size() + path.size() + 8u <= size.second) {
     // error: {msg} {path}
-    fmt::print(
-        "{} {} {}\n", formatted_error_tag(), colors::bold_white(msg), colors::bold_cyan(path));
+    fmt::print("{} {} {}\n",
+        formatted_error_tag(),
+        colors::bold_white(msg),
+        colors::bold_cyan(path));
   } else {
     fmt::print("{} {}\n", formatted_error_tag(), colors::bold_white(msg));
     fmt::print(" -> {}\n", colors::bold_cyan(path));
@@ -576,7 +525,9 @@ void logger::impl::print_code(const errors::error &err) const {
   // err.position starts at 0, tok.column starts at 1. hence the +1
   auto line_start = (err.position() + 1) - err.column();
 
-  fmt::print(" {line} {pipe} {source}\n", "line"_a = err.line(), "pipe"_a = colors::bold_black("|"),
+  fmt::print(" {line} {pipe} {source}\n",
+      "line"_a = err.line(),
+      "pipe"_a = colors::bold_black("|"),
       "source"_a = m_source.substr(line_start, m_source.find('\n', line_start) - line_start));
 }
 
@@ -611,8 +562,10 @@ void logger::impl::point_out(const errors::error &err) const {
   auto point_out = colors::bold_red(shortest == 1 ? "^" : std::string(shortest, '~'));
 
   fmt::print(" {pipe_padding} {pipe} {source_padding}{point_out}\n",
-      "pipe_padding"_a = pipe_padding, "pipe"_a = colors::bold_black("|"),
-      "source_padding"_a = src_padding, "point_out"_a = point_out);
+      "pipe_padding"_a = pipe_padding,
+      "pipe"_a = colors::bold_black("|"),
+      "source_padding"_a = src_padding,
+      "point_out"_a = point_out);
 }
 
 void logger::impl::print_note(const errors::error &err) const {
@@ -669,8 +622,12 @@ void util::debug_print(std::vector<core::token> toks) {
 
     auto padded = fmt::format("{}{}", type, padding);
 
-    fmt::print("{{ type: {}, p/l/c: {:04}:{:04}:{:03}, raw: '{}' }}\n", padded, tok.position(),
-        tok.line(), tok.column(), tok.raw());
+    fmt::print("{{ type: {}, p/l/c: {:04}:{:04}:{:03}, raw: '{}' }}\n",
+        padded,
+        tok.position(),
+        tok.line(),
+        tok.column(),
+        tok.raw());
   }
 #else
   (void)toks;

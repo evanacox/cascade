@@ -71,7 +71,8 @@ namespace cascade::ast {
      * @param c The character to load
      */
     explicit char_literal(core::source_info info, char c)
-        : literal(kind::literal_char, std::move(info)), m_value(c) {}
+        : literal(kind::literal_char, std::move(info))
+        , m_value(c) {}
 
     [[nodiscard]] virtual bool is(literal_type type) const {
       return type == literal_type::lit_char;
@@ -90,7 +91,8 @@ namespace cascade::ast {
      * @param str Pointer to the literal string in the source
      */
     explicit string_literal(core::source_info info, std::string_view str)
-        : literal(kind::literal_string, std::move(info)), m_value(std::string{str}) {}
+        : literal(kind::literal_string, std::move(info))
+        , m_value(std::string{str}) {}
 
     [[nodiscard]] virtual bool is(literal_type type) const {
       return type == literal_type::lit_string;
@@ -109,7 +111,8 @@ namespace cascade::ast {
      * @param n The value of the literal
      */
     explicit int_literal(core::source_info info, int n)
-        : literal(kind::literal_number, std::move(info)), m_value(n) {}
+        : literal(kind::literal_number, std::move(info))
+        , m_value(n) {}
 
     [[nodiscard]] virtual bool is(literal_type type) const { return type == literal_type::lit_int; }
 
@@ -126,7 +129,8 @@ namespace cascade::ast {
      * @param n The value of the literal
      */
     explicit float_literal(core::source_info info, float n)
-        : literal(kind::literal_float, std::move(info)), m_value(n) {}
+        : literal(kind::literal_float, std::move(info))
+        , m_value(n) {}
 
     [[nodiscard]] virtual bool is(literal_type type) const {
       return type == literal_type::lit_float;
@@ -145,7 +149,8 @@ namespace cascade::ast {
      * @param b The value of the literal
      */
     explicit bool_literal(core::source_info info, bool b)
-        : literal(kind::literal_bool, std::move(info)), m_value(b) {}
+        : literal(kind::literal_bool, std::move(info))
+        , m_value(b) {}
 
     [[nodiscard]] virtual bool is(literal_type type) const {
       return type == literal_type::lit_bool;

@@ -53,9 +53,12 @@ namespace cascade::ast {
      * @param reftype The type of reference it is
      * @param held Pointer to the type being referenced
      */
-    explicit reference(
-        core::source_info info, reference_type reftype, std::unique_ptr<type_base> held)
-        : type_base(kind::type_ref, std::move(info)), m_reftype(reftype), m_type(std::move(held)) {}
+    explicit reference(core::source_info info,
+        reference_type reftype,
+        std::unique_ptr<type_base> held)
+        : type_base(kind::type_ref, std::move(info))
+        , m_reftype(reftype)
+        , m_type(std::move(held)) {}
 
     /**
      * @brief Returns the type of reference it is
@@ -85,7 +88,9 @@ namespace cascade::ast {
      * @param held Pointer to the type being pointed to
      */
     explicit pointer(core::source_info info, pointer_type ptrtype, std::unique_ptr<type_base> held)
-        : type_base(kind::type_ptr, std::move(info)), m_ptrtype(ptrtype), m_type(std::move(held)) {}
+        : type_base(kind::type_ptr, std::move(info))
+        , m_ptrtype(ptrtype)
+        , m_type(std::move(held)) {}
 
     /**
      * @brief Returns the type of pointer it is
@@ -115,7 +120,9 @@ namespace cascade::ast {
      * @param held Pointer to the type being pointed to
      */
     explicit array(core::source_info info, std::size_t len, std::unique_ptr<type_base> held)
-        : type_base(kind::type_array, std::move(info)), m_length(len), m_type(std::move(held)) {}
+        : type_base(kind::type_array, std::move(info))
+        , m_length(len)
+        , m_type(std::move(held)) {}
 
     /**
      * @brief Gets the length of the array, if any
@@ -150,7 +157,9 @@ namespace cascade::ast {
      * @param n_type What type of builtin it is
      */
     explicit builtin(core::source_info info, std::size_t width, numeric_type n_type)
-        : type_base(kind::type_builtin, std::move(info)), m_width(width), m_numeric_type(n_type) {}
+        : type_base(kind::type_builtin, std::move(info))
+        , m_width(width)
+        , m_numeric_type(n_type) {}
 
     /**
      * @brief Returns the width of the builtin
@@ -176,7 +185,8 @@ namespace cascade::ast {
      * @param name The name of the UDT
      */
     explicit user_defined(core::source_info info, std::string name)
-        : type_base(kind::type_userdef, std::move(info)), m_name(std::move(name)) {}
+        : type_base(kind::type_userdef, std::move(info))
+        , m_name(std::move(name)) {}
 
     /**
      * @brief Returns the name of the UDT

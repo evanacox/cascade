@@ -71,9 +71,16 @@ namespace cascade::core {
      */
     static source_info from(const source_info &one, const source_info &two);
 
-    explicit source_info(std::size_t pos, std::size_t line, std::size_t col, std::size_t len,
+    explicit source_info(std::size_t pos,
+        std::size_t line,
+        std::size_t col,
+        std::size_t len,
         std::filesystem::path path)
-        : m_position{pos}, m_line{line}, m_col{col}, m_length{len}, m_path(std::move(path)) {}
+        : m_position{pos}
+        , m_line{line}
+        , m_col{col}
+        , m_length{len}
+        , m_path(std::move(path)) {}
 
     /** @brief Returns the token's offset in the source */
     [[nodiscard]] std::size_t position() const { return m_position; }
@@ -272,11 +279,15 @@ namespace cascade::core {
      * @param raw The raw token
      * @param path The path of the file
      */
-    token(std::size_t pos, std::size_t line, std::size_t col, kind type, std::string_view raw,
+    token(std::size_t pos,
+        std::size_t line,
+        std::size_t col,
+        kind type,
+        std::string_view raw,
         std::filesystem::path path)
-        : m_info(pos, line, col, raw.size(), std::move(path)),
-          m_type(type),
-          m_raw(std::move(raw)) {}
+        : m_info(pos, line, col, raw.size(), std::move(path))
+        , m_type(type)
+        , m_raw(std::move(raw)) {}
 
     /** @brief Returns a reference to the token's source info */
     [[nodiscard]] const source_info &info() const { return m_info; }
@@ -397,8 +408,9 @@ namespace cascade::core {
      * @param register_error A function that's called any time an error is created
      * by the lexer. The error is passed into the function.
      */
-    explicit lexer(
-        std::string_view source, std::filesystem::path file_path, register_fn register_error);
+    explicit lexer(std::string_view source,
+        std::filesystem::path file_path,
+        register_fn register_error);
 
     /**
      * @brief (eagerly) lexes the source string given

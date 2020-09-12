@@ -43,7 +43,8 @@ namespace cascade::util {
 
     public:
       file_source(std::filesystem::path path, std::string source)
-          : m_path(std::move(path)), m_source(std::move(source)) {}
+          : m_path(std::move(path))
+          , m_source(std::move(source)) {}
 
       /**
        * @brief Returns the source code
@@ -114,8 +115,8 @@ namespace cascade::util {
   template <class T>
   std::optional<std::vector<detail::file_source>> read_source(argument_parser::options &options) {
     // only types that actually implement `read` can be used here
-    static_assert(
-        std::is_base_of_v<source_reading_policy<T>, T>, "T must fufill the sourcereader policy!");
+    static_assert(std::is_base_of_v<source_reading_policy<T>, T>,
+        "T must fufill the sourcereader policy!");
 
     auto source = source_reading_policy<T>::read_source(options);
 

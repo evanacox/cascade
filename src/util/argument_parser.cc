@@ -71,14 +71,18 @@ static constexpr auto default_output = "main.exe";
 static constexpr auto default_output = "main";
 #endif
 
-options::compilation_options(std::vector<std::string> paths, optimization_level opt_level,
-    bool debug_symbols, emitted emitted, std::string triple, std::string output)
-    : m_files(std::move(paths)),
-      m_opt_level(opt_level),
-      m_debug_symbols(debug_symbols),
-      m_to_emit(emitted),
-      m_target_triple(std::move(triple)),
-      m_output(std::move(output)) {}
+options::compilation_options(std::vector<std::string> paths,
+    optimization_level opt_level,
+    bool debug_symbols,
+    emitted emitted,
+    std::string triple,
+    std::string output)
+    : m_files(std::move(paths))
+    , m_opt_level(opt_level)
+    , m_debug_symbols(debug_symbols)
+    , m_to_emit(emitted)
+    , m_target_triple(std::move(triple))
+    , m_output(std::move(output)) {}
 
 ap::argument_parser(int argc, const char **argv) : m_argc{argc}, m_argv{argv} {}
 
@@ -90,19 +94,24 @@ std::optional<options> ap::parse() {
 
   console_options.add_options()
       //
-      ("d,debug", "Whether or not to include debug symbols",
+      ("d,debug",
+          "Whether or not to include debug symbols",
           cxxopts::value<bool>()->default_value("false"))
       //
-      ("O,optimize", "Optimization levels. Options: 0, 1, 2, 3",
+      ("O,optimize",
+          "Optimization levels. Options: 0, 1, 2, 3",
           cxxopts::value<int>()->default_value("0"))
       //
-      ("e,emit", "What the compiler should output. [llvm-ir|llvm-bc|asm|obj|exe]",
+      ("e,emit",
+          "What the compiler should output. [llvm-ir|llvm-bc|asm|obj|exe]",
           cxxopts::value<std::string>()->default_value("llvm-ir"))
       //
-      ("o,output", "File to put the output in",
+      ("o,output",
+          "File to put the output in",
           cxxopts::value<std::string>()->default_value(default_output))
       //
-      ("t,target", "The LLVM target to output for",
+      ("t,target",
+          "The LLVM target to output for",
           cxxopts::value<std::string>()->default_value("default"))
       //
       ("h,help", "Prints this page")

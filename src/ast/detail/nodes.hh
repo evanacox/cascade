@@ -89,7 +89,8 @@ namespace cascade::ast {
     /** @brief Returns the node's type */
     [[nodiscard]] kind raw_kind() const { return m_type; }
 
-    /** @brief Returns a reference to the node's source mapping, for debug purposes */
+    /** @brief Returns a reference to the node's source mapping, for debug
+     * purposes */
     [[nodiscard]] const core::source_info &info() const { return m_info; }
 
     /**
@@ -157,7 +158,8 @@ namespace cascade::ast {
     }
   };
 
-  /** @brief Tag type for top-level declarations, also defines the is_*() methods */
+  /** @brief Tag type for top-level declarations, also defines the is_*()
+   * methods */
   class declaration : public node {
   public:
     explicit declaration(kind type, core::source_info info)

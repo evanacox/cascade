@@ -84,14 +84,20 @@ static std::unordered_map<std::string_view, token::kind> one_or_two_char_symbols
 };
 
 source_info source_info::from(const source_info &original, std::size_t new_len) {
-  return source_info(
-      original.position(), original.line(), original.column(), new_len, original.path());
+  return source_info(original.position(),
+      original.line(),
+      original.column(),
+      new_len,
+      original.path());
 }
 
 source_info source_info::from(const source_info &one, const source_info &two) {
-  return source_info(one.position(), one.line(), one.column(),
+  return source_info(one.position(),
+      one.line(),
+      one.column(),
       // needs to include any spaces between the two source_infos
-      (two.position() - one.position()) + two.length(), one.path());
+      (two.position() - one.position()) + two.length(),
+      one.path());
 }
 
 bool token::is_literal() const {
@@ -255,7 +261,10 @@ class lexer::impl {
 
 public:
   impl(std::string_view src, fs::path path, register_fn func)
-      : m_source(src), m_path(path), m_it(m_source.begin()), m_register(func) {}
+      : m_source(src)
+      , m_path(path)
+      , m_it(m_source.begin())
+      , m_register(func) {}
 
   std::vector<token> lex();
 };
@@ -343,8 +352,8 @@ std::optional<token> lexer::impl::consume_identifier() {
 
   auto full = m_source.substr(m_starting_pos, m_pos - m_starting_pos);
 
-  return create_token(
-      util::is_kind(full) ? util::kind_from_string(full) : token::kind::identifier, full);
+  return create_token(util::is_kind(full) ? util::kind_from_string(full) : token::kind::identifier,
+      full);
 }
 
 lexer::return_type lexer::impl::lex() {

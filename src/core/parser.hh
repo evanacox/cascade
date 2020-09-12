@@ -39,8 +39,8 @@ namespace cascade::core {
    * @param report The function that gets called on any errors
    * @return An AST
    */
-  ast::program parse(
-      lexer::return_type source, std::function<void(std::unique_ptr<errors::error>)> report);
+  ast::program parse(lexer::return_type source,
+      std::function<void(std::unique_ptr<errors::error>)> report);
 } // namespace cascade::core
 
 #endif

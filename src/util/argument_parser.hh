@@ -90,8 +90,12 @@ namespace cascade::util {
      * @param triple The target triple
      * @param output The file to output to
      */
-    explicit compilation_options(std::vector<std::string> files, optimization_level opt_level,
-        bool debug_symbols, emitted to_emit, std::string triple, std::string output);
+    explicit compilation_options(std::vector<std::string> files,
+        optimization_level opt_level,
+        bool debug_symbols,
+        emitted to_emit,
+        std::string triple,
+        std::string output);
 
     /**
      * @brief Returns a list of files to compile. If the list is empty,
