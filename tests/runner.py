@@ -2,7 +2,11 @@
 
 import sys
 from typing import List, Tuple
-from optparse import OptionParser
+from argparse import ArgumentParser
+import multiprocessing
+
+
+num_cpus_default = int(multiprocessing.cpu_count() / 2)
 
 
 class TestRunner:
@@ -57,17 +61,20 @@ class TestRunner:
         raise NotImplementedError("Not implemented!")
 
 
-def main(threads) -> None:
-    raise NotImplementedError("Not implemented!")
+def main(options) -> None:
+    print(f"Threads: {options.jobs}")
+    print(f"Whether to build: {options.build}")
 
 
-parser = OptionParser()
-parser.add_option("-j", "--jobs", dest="jobs", default=1, type="int", metavar="JOBS",
-                  help="the number of parallel jobs to run")
-parser.add_option("-b", "--build", dest="build", default=True,
-                  help="Whether or not to build the compiler before running tests")
+parser = ArgumentParser(description="Tests the Cascade compiler")
+parser.add_argument("-b", "--build", action="store_true",
+                    help="build before running tests (default: false)")
+parser.add_argument("-s", "--silent", action="store_true",
+                    help="silence non-essential logging")
+parser.add_argument("-j", "--jobs", default=num_cpus_default, metavar="N", type=int,
+                    help=f"the number of jobs to run (default: {num_cpus_default})")
 
-(options, args) = parser.parse_args()
+options = parser.parse_args()
 
 if __name__ == "__main__":
     main(options)

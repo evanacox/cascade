@@ -24,7 +24,6 @@
 #ifndef CASCADE_AST_DETAIL_DECLARATIONS_HH
 #define CASCADE_AST_DETAIL_DECLARATIONS_HH
 
-#include "ast/ast_visitor.hh"
 #include "ast/detail/expressions.hh"
 #include "ast/detail/nodes.hh"
 #include "core/lexer.hh"

@@ -35,6 +35,22 @@ namespace cascade::util {
    * @param builtin_fn The function to call on builtins
    * @param userdef_fn The function to call on user-def types
    */
+  void traverse_type(const ast::type_base &node,
+      std::function<void(const ast::pointer &)> ptr_fn,
+      std::function<void(const ast::reference &)> ref_fn,
+      std::function<void(const ast::array &)> array_fn,
+      std::function<void(const ast::builtin &)> builtin_fn,
+      std::function<void(const ast::user_defined &)> userdef_fn);
+
+  /**
+   * @brief Utility function for traversing a type
+   * @param node The original type node
+   * @param ptr_fn The function to call on a pointer
+   * @param ref_fn The function to call on a reference
+   * @param array_fn The function to call on arrays
+   * @param builtin_fn The function to call on builtins
+   * @param userdef_fn The function to call on user-def types
+   */
   void traverse_type(ast::type_base &node,
       std::function<void(ast::pointer &)> ptr_fn,
       std::function<void(ast::reference &)> ref_fn,
@@ -47,5 +63,19 @@ namespace cascade::util {
    * @param node The type to transform
    * @return A string of the type
    */
-  std::string to_string(ast::type_base &node);
+  std::string to_string(const ast::type_base &node);
+
+  /**
+   * @brief Hashes a type AST object
+   * @param node The node to hash
+   */
+  std::size_t hash(const ast::type_base &node);
 } // namespace cascade::util
+
+namespace std {
+  template <> struct hash<cascade::ast::type_base> {
+    std::size_t operator()(const cascade::ast::type_base &node) {
+      return cascade::util::hash(node);
+    }
+  };
+} // namespace std

@@ -22,9 +22,9 @@
  *---------------------------------------------------------------------------*/
 
 #include "util/logging.hh"
-#include "ast/ast_visitor.hh"
 #include "ast/detail/declarations.hh"
 #include "ast/detail/types.hh"
+#include "ast/visitor.hh"
 #include "errors/error_lookup.hh"
 #include "errors/error_visitor.hh"
 #include "util/keywords.hh"
@@ -122,55 +122,28 @@ static constexpr unsigned number_of_digits(int n) {
   return digits;
 }
 
-#define VISIT(type) virtual void visit(ast::type &) final
-
 /** @brief Visits AST nodes to print them out */
-struct ast_printer : public ast::ast_visitor<void> {
+struct printer : public ast::visitor<void> {
   std::string m_prefix = "";
 
   void accept_with_prefix(ast::node &node);
 
-  VISIT(type_base);
-  VISIT(const_decl);
-  VISIT(static_decl);
-  VISIT(argument);
-  VISIT(fn);
-  VISIT(module_decl);
-  VISIT(import_decl);
-  VISIT(export_decl);
-  VISIT(char_literal);
-  VISIT(string_literal);
-  VISIT(int_literal);
-  VISIT(float_literal);
-  VISIT(bool_literal);
-  VISIT(identifier);
-  VISIT(call);
-  VISIT(binary);
-  VISIT(unary);
-  VISIT(field_access);
-  VISIT(index);
-  VISIT(if_else);
-  VISIT(struct_init);
-  VISIT(block);
-  VISIT(expression_statement);
-  VISIT(let);
-  VISIT(mut);
-  VISIT(ret);
-  VISIT(loop);
-  VISIT(type_decl);
-};
+#define VISIT(type) virtual void visit(ast::type &) final
+
+  CASCADE_VISIT_TYPES
 
 #undef VISIT
+};
 
 using kind = ast::kind;
 
-void ast_printer::accept_with_prefix(ast::node &node) {
+void printer::accept_with_prefix(ast::node &node) {
   m_prefix += "  ";
   node.accept(*this);
   m_prefix = m_prefix.substr(0, m_prefix.size() - 2);
 }
 
-void ast_printer::visit(ast::type_base &node) {
+void printer::visit(ast::type_base &node) {
   if (node.is(kind::type_implied)) {
     std::cout << "<implied>\n";
   } else if (node.is(kind::type_void)) {
@@ -180,7 +153,7 @@ void ast_printer::visit(ast::type_base &node) {
   }
 }
 
-void ast_printer::visit(ast::type_decl &decl) {
+void printer::visit(ast::type_decl &decl) {
   std::cout << "type alias {\n";
   fmt::print("{}  type: ", m_prefix);
   decl.type().accept(*this);
@@ -188,7 +161,7 @@ void ast_printer::visit(ast::type_decl &decl) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::const_decl &decl) {
+void printer::visit(ast::const_decl &decl) {
   std::cout << "const decl {\n";
   fmt::print("{}  type: ", m_prefix);
 
@@ -202,7 +175,7 @@ void ast_printer::visit(ast::const_decl &decl) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::static_decl &decl) {
+void printer::visit(ast::static_decl &decl) {
   std::cout << "static decl {\n";
   fmt::print("{}  type: ", m_prefix);
 
@@ -216,7 +189,7 @@ void ast_printer::visit(ast::static_decl &decl) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::argument &arg) {
+void printer::visit(ast::argument &arg) {
   std::cout << "argument {\n";
   fmt::print("{}  name: {}\n", m_prefix, arg.name());
   fmt::print("{}  type: ", m_prefix);
@@ -225,7 +198,7 @@ void ast_printer::visit(ast::argument &arg) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::fn &fn) {
+void printer::visit(ast::fn &fn) {
   std::cout << "fn {\n";
   fmt::print("{}  name: {}\n", m_prefix, fn.name());
   fmt::print("{}  type: ", m_prefix);
@@ -251,9 +224,9 @@ void ast_printer::visit(ast::fn &fn) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::module_decl &mod) { fmt::print("module: {}\n", mod.name()); }
+void printer::visit(ast::module_decl &mod) { fmt::print("module: {}\n", mod.name()); }
 
-void ast_printer::visit(ast::import_decl &impt) {
+void printer::visit(ast::import_decl &impt) {
   std::cout << "import {\n";
   fmt::print("{}  from: {}\n", m_prefix, impt.name());
   fmt::print("{}  items: [\n", m_prefix);
@@ -266,27 +239,25 @@ void ast_printer::visit(ast::import_decl &impt) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::export_decl &expt) {
+void printer::visit(ast::export_decl &expt) {
   std::cout << "(exported) ";
 
   expt.exported().accept(*this);
 }
 
-void ast_printer::visit(ast::char_literal &c) { fmt::print("char literal: '{}'\n", c.value()); }
+void printer::visit(ast::char_literal &c) { fmt::print("char literal: '{}'\n", c.value()); }
 
-void ast_printer::visit(ast::string_literal &s) {
-  fmt::print("string literal: \"{}\"\n", s.value());
-}
+void printer::visit(ast::string_literal &s) { fmt::print("string literal: \"{}\"\n", s.value()); }
 
-void ast_printer::visit(ast::int_literal &d) { fmt::print("integer literal: {}\n", d.value()); }
+void printer::visit(ast::int_literal &d) { fmt::print("integer literal: {}\n", d.value()); }
 
-void ast_printer::visit(ast::float_literal &f) { fmt::print("float literal: {}\n", f.value()); }
+void printer::visit(ast::float_literal &f) { fmt::print("float literal: {}\n", f.value()); }
 
-void ast_printer::visit(ast::bool_literal &b) { fmt::print("bool literal: {}\n", b.value()); }
+void printer::visit(ast::bool_literal &b) { fmt::print("bool literal: {}\n", b.value()); }
 
-void ast_printer::visit(ast::identifier &id) { fmt::print("identifier: '{}'\n", id.name()); }
+void printer::visit(ast::identifier &id) { fmt::print("identifier: '{}'\n", id.name()); }
 
-void ast_printer::visit(ast::call &call) {
+void printer::visit(ast::call &call) {
   std::cout << "call {\n";
   fmt::print("{}  callee: ", m_prefix);
   accept_with_prefix(call.callee());
@@ -308,7 +279,7 @@ void ast_printer::visit(ast::call &call) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::binary &binop) {
+void printer::visit(ast::binary &binop) {
   std::cout << "binary {\n";
   fmt::print("{}  op: {}\n", m_prefix, string_from_kind(binop.op()));
   fmt::print("{}  lhs: ", m_prefix);
@@ -318,7 +289,7 @@ void ast_printer::visit(ast::binary &binop) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::unary &unop) {
+void printer::visit(ast::unary &unop) {
   std::cout << "unary {\n";
   fmt::print("{}  op: {}\n", m_prefix, string_from_kind(unop.op()));
   fmt::print("{}  rhs: ", m_prefix);
@@ -326,7 +297,7 @@ void ast_printer::visit(ast::unary &unop) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::field_access &field) {
+void printer::visit(ast::field_access &field) {
   std::cout << "field access {\n";
   fmt::print("{}  object: ", m_prefix);
   accept_with_prefix(field.accessed());
@@ -334,7 +305,7 @@ void ast_printer::visit(ast::field_access &field) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::index &idx) {
+void printer::visit(ast::index &idx) {
   std::cout << "index access {\n";
   fmt::print("{}  object: ", m_prefix);
   accept_with_prefix(idx.array());
@@ -343,7 +314,7 @@ void ast_printer::visit(ast::index &idx) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::if_else &ifelse) {
+void printer::visit(ast::if_else &ifelse) {
   std::cout << "if {\n";
   fmt::print("{}  condition: ", m_prefix);
   accept_with_prefix(ifelse.condition());
@@ -358,9 +329,9 @@ void ast_printer::visit(ast::if_else &ifelse) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::struct_init &) { throw std::logic_error{"Not implemented!"}; }
+void printer::visit(ast::struct_init &) { throw std::logic_error{"Not implemented!"}; }
 
-void ast_printer::visit(ast::block &block) {
+void printer::visit(ast::block &block) {
   std::cout << "block {\n";
   fmt::print("{}  return_type: ", m_prefix);
   block.type().accept(*this);
@@ -383,12 +354,12 @@ void ast_printer::visit(ast::block &block) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::expression_statement &stmt) {
+void printer::visit(ast::expression_statement &stmt) {
   std::cout << "expr statement: ";
   stmt.expr().accept(*this);
 }
 
-void ast_printer::visit(ast::let &stmt) {
+void printer::visit(ast::let &stmt) {
   std::cout << "let {\n";
   fmt::print("{}  type: ", m_prefix);
   stmt.type().accept(*this);
@@ -398,7 +369,7 @@ void ast_printer::visit(ast::let &stmt) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::mut &stmt) {
+void printer::visit(ast::mut &stmt) {
   std::cout << "mut {\n";
   fmt::print("{}  type: ", m_prefix);
   stmt.type().accept(*this);
@@ -408,7 +379,7 @@ void ast_printer::visit(ast::mut &stmt) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::ret &ret) {
+void printer::visit(ast::ret &ret) {
   std::cout << "ret {\n";
   fmt::print("{}  return value: ", m_prefix);
 
@@ -421,7 +392,7 @@ void ast_printer::visit(ast::ret &ret) {
   fmt::print("{}}}\n", m_prefix);
 }
 
-void ast_printer::visit(ast::loop &loop) {
+void printer::visit(ast::loop &loop) {
   std::cout << "loop {\n";
   fmt::print("{}  condition: ", m_prefix);
 
@@ -636,7 +607,7 @@ void util::debug_print(std::vector<core::token> toks) {
 
 void util::debug_print(ast::node &node) {
 #ifndef NDEBUG
-  ast_printer printer;
+  printer printer;
 
   node.accept(printer);
 #else
@@ -648,7 +619,7 @@ void util::debug_print(ast::program &prog) {
 #ifndef NDEBUG
   std::cout << "program: {\n";
 
-  ast_printer printer;
+  printer printer;
   printer.m_prefix += "  ";
 
   for (auto &&decl : prog.decls()) {

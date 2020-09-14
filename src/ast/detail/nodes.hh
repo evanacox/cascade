@@ -24,7 +24,7 @@
 #ifndef CASCADE_AST_DETAIL_NODES_HH
 #define CASCADE_AST_DETAIL_NODES_HH
 
-#include "ast/ast_visitor.hh"
+#include "ast/visitor.hh"
 #include "core/lexer.hh"
 
 namespace cascade::ast {
@@ -84,7 +84,7 @@ namespace cascade::ast {
      */
     explicit node(kind type, core::source_info info) : m_info(info), m_type(type) {}
 
-    template <class T> auto accept(ast_visitor<T> &visitor);
+    template <class T> T accept(visitor<T> &visitor);
 
     /** @brief Returns the node's type */
     [[nodiscard]] kind raw_kind() const { return m_type; }
@@ -143,7 +143,7 @@ namespace cascade::ast {
      * @brief Standard visitor method for void
      * @param visitor The visitor to accept
      */
-    void visit_accept(ast_visitor<void> &visitor) {
+    void visit_accept(visitor<void> &visitor) {
       // each type inheriting from this becomes visitable
       return visitor.visit(static_cast<T &>(*this));
     }
@@ -153,7 +153,7 @@ namespace cascade::ast {
      * @param visitor The visitor to accept
      * @return The result of the visit method
      */
-    template <class R> R visit_accept(ast_visitor<R> &visitor) {
+    template <class R> R visit_accept(visitor<R> &visitor) {
       return visitor.visit(static_cast<T &>(*this));
     }
   };
