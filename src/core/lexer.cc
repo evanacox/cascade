@@ -416,6 +416,12 @@ lexer::return_type lexer::impl::lex() {
       tokens.emplace_back(consume_identifier().value());
     }
 
+    else if (current() == '.' && std::isdigit(peek())) {
+      if (auto result = consume_digits(); result) {
+        tokens.emplace_back(std::move(result.value()));
+      }
+    }
+
     else if (current() == '<' && peek() == '<') {
       consume(2);
 

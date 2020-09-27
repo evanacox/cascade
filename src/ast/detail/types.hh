@@ -26,193 +26,238 @@
 
 #include "ast/detail/nodes.hh"
 #include "core/lexer.hh"
+#include <cassert>
+#include <deque>
 #include <memory>
 
 namespace cascade::ast {
-  /** @brief Represents the "type" of reference, meaning `&T` vs `&mut T` */
-  enum class reference_type : bool { ref, mut_ref };
+  /**
+   * @brief Internal structure that encodes only the type, used in the typechecker
+   * Makes it easy to modify type attributes (e.g remove/add pointer, reference, promotions, casts,
+   * etc)
+   */
+  class type_data {
+  public:
+    /** @brief Any modifiers on a base type */
+    enum class type_modifiers : char { ref, mut_ref, ptr, mut_ptr, array };
 
-  /** @brief Represents the type of pointer it is (meaning *T vs *mut T) */
-  enum class pointer_type : bool { ptr, mut_ptr };
+    /** @brief */
+    enum class type_base {
+      boolean,
+      integer,
+      unsigned_integer,
+      floating_point,
+      user_defined,
+      implied,
+      void_type,
+      error_type,
+    };
 
-  /** @brief What type of number a builtin is */
-  enum class numeric_type : char { boolean, integer, unsigned_integer, floating_point };
+  private:
+    /** @brief The actual stream of modifiers on the type */
+    std::deque<type_modifiers> m_modifiers;
 
-  /** @brief Represents a reference type */
-  class reference : public type_base {
-    /** @brief The type of reference */
-    reference_type m_reftype;
+    /** @brief The actual "type" of a thing, e.g "bool" in "*mut bool" */
+    type_base m_base;
 
-    /** @brief The type the reference refers to */
-    std::unique_ptr<type_base> m_type;
+    /**
+     * @brief Represents either the precision of the builtin (if m_type ends as a builtin)
+     * or the name of a userdef
+     */
+    std::variant<std::size_t, std::string> m_data;
 
   public:
     /**
-     * @brief Creates a reference type
-     * @param info The source info for this reference specifically
-     * @param reftype The type of reference it is
-     * @param held Pointer to the type being referenced
+     * @brief Creates a builtin type of @p precision
+     * @param modifs The modifiers for the type
+     * @param base The builtin type
+     * @param precision The precision of the builtin
      */
-    explicit reference(core::source_info info,
-        reference_type reftype,
-        std::unique_ptr<type_base> held)
-        : type_base(kind::type_ref, std::move(info))
-        , m_reftype(reftype)
-        , m_type(std::move(held)) {}
+    type_data(std::deque<type_modifiers> modifs, type_base base, std::size_t precision)
+        : m_modifiers(std::move(modifs))
+        , m_base(base)
+        , m_data() {
+      m_data.emplace<std::size_t>(precision);
+    }
+
+    type_data(std::deque<type_modifiers> modifs, type_base base, std::string name)
+        : m_modifiers(std::move(modifs))
+        , m_base(base)
+        , m_data() {
+      m_data.emplace<std::string>(std::move(name));
+    }
+
+    /** @brief Returns a mutable reference to the type modifiers */
+    [[nodiscard]] std::deque<type_modifiers> &modifiers() { return m_modifiers; }
+
+    /** @brief Returns a mutable reference to the base type */
+    [[nodiscard]] type_base &base() { return m_base; }
+
+    /** @brief Returns a mutable reference to the raw data variant */
+    [[nodiscard]] std::variant<std::size_t, std::string> &data() { return m_data; }
+
+    /** @brief Returns a const reference to the type modifiers */
+    [[nodiscard]] const std::deque<type_modifiers> &modifiers() const { return m_modifiers; }
+
+    /** @brief Returns a const reference to the base type */
+    [[nodiscard]] const type_base &base() const { return m_base; }
+
+    /** @brief Returns a const reference to the raw data variant */
+    [[nodiscard]] const std::variant<std::size_t, std::string> &data() const { return m_data; }
+
+    /** @brief Gets the data as a size_t */
+    [[nodiscard]] std::size_t precision() const { return std::get<std::size_t>(m_data); }
+
+    /** @brief Gets the data as an std::string */
+    [[nodiscard]] std::string name() const { return std::get<std::string>(m_data); }
 
     /**
-     * @brief Returns the type of reference it is
-     * @return The type of reference
+     * @brief Performs memberwise equality on two type_data objects
+     * @param other The other type_data to compare against
+     * @return True if they're equal
      */
-    [[nodiscard]] reference_type ref_type() const { return m_reftype; }
+    bool operator==(const type_data &other) const {
+      // <error-type> is only given when an error is reported,
+      // it's used to prevent cascading errors if an expression with
+      // an error type is used inside a larger thing
+      if (is(type_base::error_type)) {
+        return true;
+      }
+
+      if (other.is(type_base::error_type)) {
+        return true;
+      }
+
+      return modifiers() == other.modifiers() && data() == other.data() && base() == other.base();
+    }
 
     /**
-     * @brief Returns the type being referenced by the ref
-     * @return The type being referenced
+     * @brief Performs memberwise equality on two type_data objects
+     * @param other The other type_data to compare against
+     * @return True if they're not equal
      */
-    [[nodiscard]] type_base &held() const { return *m_type; }
+    bool operator!=(const type_data &other) const { return !(*this == other); }
+
+    /**
+     * @brief Checks if a type is of @p type
+     * @param type The type to check against
+     * @return If the type is of @p type for a base
+     */
+    [[nodiscard]] bool is(type_base type) const { return m_base == type; }
+
+    /**
+     * @brief Checks if a type is not of @p type
+     * @param type The type to check against
+     * @return If the base type is not @p type
+     */
+    [[nodiscard]] bool is_not(type_base type) const { return !is(type); }
+
+    /**
+     * @brief Checks if a type is of @p type or one of @p rest is the base type
+     * @param type The type to check against
+     * @param rest The rest of the types to check against
+     * @return If the base type is @p type or is included in @p rest
+     */
+    template <class... Rest>[[nodiscard]] bool is_one_of(type_base first, Rest... rest) const {
+      if (is(first)) {
+        return true;
+      }
+
+      if constexpr (sizeof...(rest) > 0) {
+        return is_one_of(std::forward<type_base>(rest...));
+      }
+
+      return false;
+    }
+
+    /**
+     * @brief Returns if the type is one of the builtin types
+     * @return True if the type is one of the builtin types
+     */
+    [[nodiscard]] bool is_builtin() const {
+      return is_not(type_base::implied) && is_not(type_base::void_type)
+             && is_not(type_base::user_defined);
+    }
+
+    /**
+     * @brief Returns if the type is an error_type
+     * @return True if the type is an error_type
+     */
+    [[nodiscard]] bool is_error() const { return is(type_base::error_type); }
   };
 
-  /** @brief Represents a pointer type */
-  class pointer : public type_base {
-    pointer_type m_ptrtype;
+  /** @brief A simple class holding a type */
+  class type : public node, public visitable<type> {
+  public:
+    using type_modifiers = type_data::type_modifiers;
+    using type_base = type_data::type_base;
 
-    /** @brief The type the pointer points to */
-    std::unique_ptr<type_base> m_type;
+  private:
+    type_data m_type;
+
+  protected:
+    // ctor that the implied/void types can use
+    explicit type(kind type, core::source_info info, type_base base)
+        : node(type, std::move(info))
+        , m_type({}, base, 0) {}
 
   public:
     /**
-     * @brief Creates the pointer type
-     * @param info The source info for this pointer specifically
-     * @param ptrtype What type of pointer it is
-     * @param held Pointer to the type being pointed to
+     * @brief Creates a new **builtin** type
+     * @param info The source info with the location of the type
+     * @param mods Any modifiers on the type (e.g &mut, *, [])
+     * @param base The "base" type (e.g bool, integer, float)
+     * @param precision The precision of the builtin type
      */
-    explicit pointer(core::source_info info, pointer_type ptrtype, std::unique_ptr<type_base> held)
-        : type_base(kind::type_ptr, std::move(info))
-        , m_ptrtype(ptrtype)
-        , m_type(std::move(held)) {}
+    explicit type(core::source_info info,
+        std::deque<type_modifiers> mods,
+        type_base base,
+        std::size_t precision)
+        : node(kind::type, std::move(info))
+        , m_type(std::move(mods), base, std::move(precision)) {}
 
     /**
-     * @brief Returns the type of pointer it is
-     * @return The type of pointer
+     * @brief Creates a new **user defined** type
+     * @param info The source info with the location of the type
+     * @param mods Any modifiers on the type (e.g &mut, *, [])
+     * @param name The name of the userdefined type
      */
-    [[nodiscard]] pointer_type ptr_type() const { return m_ptrtype; }
+    explicit type(core::source_info info, std::deque<type_modifiers> mods, std::string name)
+        : node(kind::type, std::move(info))
+        , m_type(std::move(mods), type_base::user_defined, std::move(name)) {}
 
-    /**
-     * @brief Returns the type being pointed to
-     * @return The type being pointed to
-     */
-    [[nodiscard]] type_base &held() const { return *m_type; }
-  };
+    [[nodiscard]] virtual bool is_expression() const final { return false; }
 
-  /** @brief Represents an array type */
-  class array : public type_base {
-    /** @brief The number of elements in the array, if 0 it's not  */
-    std::size_t m_length;
+    [[nodiscard]] virtual bool is_declaration() const final { return false; }
 
-    std::unique_ptr<type_base> m_type;
+    [[nodiscard]] virtual bool is_statement() const final { return false; }
 
-  public:
-    /**
-     * @brief Creates the array type
-     * @param info The source info for this array specifically
-     * @param len The length of the array
-     * @param held Pointer to the type being pointed to
-     */
-    explicit array(core::source_info info, std::size_t len, std::unique_ptr<type_base> held)
-        : type_base(kind::type_array, std::move(info))
-        , m_length(len)
-        , m_type(std::move(held)) {}
+    /** @brief Returns the type's information */
+    [[nodiscard]] type_data &data() { return m_type; }
 
-    /**
-     * @brief Gets the length of the array, if any
-     * @return The length
-     */
-    [[nodiscard]] std::size_t length() const { return m_length; }
-
-    /**
-     * @brief Sets the length of the array
-     * @param n The new length
-     */
-    void length(std::size_t n) { m_length = n; }
-
-    /**
-     * @brief Returns the type the array members are
-     * @return The type of the array members
-     */
-    [[nodiscard]] type_base &held() const { return *m_type; }
-  };
-
-  /** @brief Represents a builtin type */
-  class builtin : public type_base {
-    std::size_t m_width;
-
-    numeric_type m_numeric_type;
-
-  public:
-    /**
-     * @brief Creates a builtin type
-     * @param info The source info for the builtin type signature
-     * @param width The bitwise width of the builtin
-     * @param n_type What type of builtin it is
-     */
-    explicit builtin(core::source_info info, std::size_t width, numeric_type n_type)
-        : type_base(kind::type_builtin, std::move(info))
-        , m_width(width)
-        , m_numeric_type(n_type) {}
-
-    /**
-     * @brief Returns the width of the builtin
-     * @return The width
-     */
-    [[nodiscard]] std::size_t width() const { return m_width; }
-
-    /**
-     * @brief Returns what type of number the bits should be interpreted as
-     * @return The type of builtin
-     */
-    [[nodiscard]] numeric_type num_type() const { return m_numeric_type; }
-  };
-
-  /** @brief Represents a UDT */
-  class user_defined : public type_base {
-    std::string m_name;
-
-  public:
-    /**
-     * @brief Creates a UDT
-     * @param info Source info for the type signature
-     * @param name The name of the UDT
-     */
-    explicit user_defined(core::source_info info, std::string name)
-        : type_base(kind::type_userdef, std::move(info))
-        , m_name(std::move(name)) {}
-
-    /**
-     * @brief Returns the name of the UDT
-     * @return A string_view to the name
-     */
-    [[nodiscard]] std::string_view name() const { return m_name; }
+    [[nodiscard]] const type_data &data() const { return m_type; }
   };
 
   /** @brief Serves as a marker for a type that the user left implied */
-  class implied : public type_base {
+  class implied : public type {
   public:
     /**
      * @brief Creates an implied instance
      * @param info The source info for the location where the type **would be**.
      */
-    explicit implied(core::source_info info) : type_base(kind::type_implied, std::move(info)) {}
+    explicit implied(core::source_info info)
+        : type(kind::type_implied, std::move(info), type_base::implied) {}
   };
 
   /** @brief Serves as a marker for something that doesn't really *have* a type */
-  class void_type : public type_base {
+  class void_type : public type {
   public:
     /**
      * @brief Creates a void_type instance
      * @param info The source info for the location where the type **would be**.
      */
-    explicit void_type(core::source_info info) : type_base(kind::type_void, std::move(info)) {}
+    explicit void_type(core::source_info info)
+        : type(kind::type_void, std::move(info), type_base::void_type) {}
   };
 } // namespace cascade::ast
 

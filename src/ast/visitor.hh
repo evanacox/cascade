@@ -25,7 +25,7 @@
 #define CASCADE_AST_AST_VISITOR_HH
 
 namespace cascade::ast {
-  class type_base;
+  class type;
   class const_decl;
   class static_decl;
   class argument;
@@ -57,7 +57,7 @@ namespace cascade::ast {
 // CASCADE_VISIT_TYPE is left defined intentionally so visitors can use it as well
 // the intention is that the implementor defines VISIT(type) and then uses this macro
 #define CASCADE_VISIT_TYPES                                                                        \
-  VISIT(type_base);                                                                                \
+  VISIT(type);                                                                                     \
   VISIT(const_decl);                                                                               \
   VISIT(static_decl);                                                                              \
   VISIT(argument);                                                                                 \

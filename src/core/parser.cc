@@ -31,7 +31,6 @@
 #include <fmt/format.h>
 #include <memory>
 #include <set>
-#include <stack>
 #include <string>
 
 using namespace cascade;
@@ -43,7 +42,7 @@ using node_ptr = std::unique_ptr<ast::node>;
 using expr_ptr = std::unique_ptr<ast::expression>;
 using stmt_ptr = std::unique_ptr<ast::statement>;
 using decl_ptr = std::unique_ptr<ast::declaration>;
-using type_ptr = std::unique_ptr<ast::type_base>;
+using type_ptr = std::unique_ptr<ast::type>;
 using kind = token::kind;
 using ec = errors::error_code;
 
@@ -168,7 +167,7 @@ public:
   // parse statements
   [[nodiscard]] type_ptr type_with_colon();
   [[nodiscard]] type_ptr type_without_colon();
-  [[nodiscard]] type_ptr finish_type();
+  [[nodiscard]] type_ptr read_type();
   [[nodiscard]] stmt_ptr variable();
   [[nodiscard]] stmt_ptr ret();
   [[nodiscard]] stmt_ptr loop();
@@ -400,7 +399,7 @@ expr_ptr parser_impl::primary() {
       // std::from_chars on libstdc++ doesn't support floats/doubles
       auto number = std::stof(std::string{tok.raw()});
 
-      return std::make_unique<ast::int_literal>(tok.info(), number);
+      return std::make_unique<ast::float_literal>(tok.info(), number);
     } // stof can throw on a non-integer string
     catch (std::invalid_argument &) {
       throw std::invalid_argument(fmt::format("bad argument to std::stof. tok: '{}'", tok.raw()));
@@ -519,7 +518,6 @@ expr_ptr parser_impl::unary() {
       kind::symbol_star,
       kind::symbol_pound,
       kind::symbol_at,
-      kind::symbol_plus,
       kind::symbol_hyphen,
       kind::keyword_clone);
 }
@@ -642,87 +640,111 @@ expr_ptr parser_impl::assignment() {
 
 expr_ptr parser_impl::expression() { return assignment(); }
 
-type_ptr parser_impl::finish_type() {
-  if (current().is(kind::symbol_star)) {
-    auto star = consume();
+type_ptr parser_impl::read_type() {
+  using mods = ast::type::type_modifiers;
+
+  const auto &begin = current();
+  std::deque<ast::type::type_modifiers> modifs;
+
+  if (current().is(kind::symbol_pound)) {
+    consume();
 
     if (current().is(kind::keyword_mut)) {
       consume();
-
-      auto type = finish_type();
-
-      return std::make_unique<ast::pointer>(srcinfo::from(star.info(), type->info()),
-          ast::pointer_type::mut_ptr,
-          std::move(type));
+      modifs.push_back(mods::mut_ref);
+    } else {
+      modifs.push_back(mods::ref);
     }
-
-    auto type = finish_type();
-
-    return std::make_unique<ast::pointer>(srcinfo::from(star.info(), type->info()),
-        ast::pointer_type::ptr,
-        std::move(type));
   }
 
-  if (current().is(kind::symbol_openbracket)) {
-    auto open = consume();
+  while (current().is_one_of(kind::symbol_star, kind::symbol_openbracket)) {
+    if (current().is(kind::symbol_star)) {
+      consume();
 
-    if (current().is_not(kind::symbol_closebracket)) {
-      report_error(ec::unexpected_tok, consume(), "Expected a ']' to match opening '['");
+      if (current().is(kind::keyword_mut)) {
+        consume();
+        modifs.push_back(mods::mut_ptr);
+      } else {
+        modifs.push_back(mods::ptr);
+      }
     }
 
-    consume();
+    if (current().is(kind::symbol_openbracket)) {
+      auto open = consume();
 
-    auto type = finish_type();
+      if (current().is_not(kind::symbol_closebracket)) {
+        report_error(ec::unexpected_tok, consume(), "Expected a ']' to match opening '['");
+      }
 
-    return std::make_unique<ast::array>(srcinfo::from(open.info(), type->info()),
-        0,
-        std::move(type));
+      consume();
+
+      modifs.push_back(mods::array);
+    }
   }
 
   if (current().is(kind::identifier)) {
     auto id = consume();
 
     if (id.raw() == "bool") {
-      return std::make_unique<ast::builtin>(id.info(), 1, ast::numeric_type::boolean);
+      return std::make_unique<ast::type>(srcinfo::from(begin.info(), id.info()),
+          std::move(modifs),
+          ast::type::type_base::boolean,
+          1);
     }
 
     if (id.raw()[0] == 'i' || id.raw()[0] == 'u') {
       auto width = id.raw().substr(1);
       auto type = (id.raw()[0] == 'i') // iN is signed, uN is unsigned
-                      ? ast::numeric_type::integer
-                      : ast::numeric_type::unsigned_integer;
+                      ? ast::type::type_base::integer
+                      : ast::type::type_base::unsigned_integer;
+
+      auto width_int = 0;
 
       if (width == "8") {
-        return std::make_unique<ast::builtin>(id.info(), 8, type);
+        width_int = 8;
       } else if (width == "16") {
-        return std::make_unique<ast::builtin>(id.info(), 16, type);
-
+        width_int = 16;
       } else if (width == "32") {
-        return std::make_unique<ast::builtin>(id.info(), 32, type);
-
+        width_int = 32;
       } else if (width == "64") {
-        return std::make_unique<ast::builtin>(id.info(), 64, type);
+        width_int = 64;
       } else {
         // i12 is a perfectly valid struct name, no matter how much I may dislike it
-        return std::make_unique<ast::user_defined>(id.info(), std::string{id.raw()});
+        return std::make_unique<ast::type>(srcinfo::from(begin.info(), id.info()),
+            std::move(modifs),
+            std::string{id.raw()});
       }
+
+      return std::make_unique<ast::type>(srcinfo::from(begin.info(), id.info()),
+          std::move(modifs),
+          type,
+          width_int);
     }
 
     if (id.raw()[0] == 'f') {
       auto width = id.raw().substr(1);
+      auto width_int = 0;
 
       if (width == "32") {
-        return std::make_unique<ast::builtin>(id.info(), 32, ast::numeric_type::floating_point);
-
+        width_int = 32;
       } else if (width == "64") {
-        return std::make_unique<ast::builtin>(id.info(), 64, ast::numeric_type::floating_point);
+        width_int = 64;
       } else {
-        // i12 is a perfectly valid struct name, no matter how much I may dislike it
-        return std::make_unique<ast::user_defined>(id.info(), std::string{id.raw()});
+        // f12 is a perfectly valid struct name, no matter how much I may dislike it
+        return std::make_unique<ast::type>(srcinfo::from(begin.info(), id.info()),
+            std::move(modifs),
+            std::string{id.raw()});
       }
+
+      return std::make_unique<ast::type>(srcinfo::from(begin.info(), id.info()),
+          std::move(modifs),
+          ast::type::type_base::floating_point,
+          width_int);
     }
 
-    return std::make_unique<ast::user_defined>(id.info(), std::string{id.raw()});
+    return std::make_unique<ast::type>(srcinfo::from(begin.info(), id.info()),
+        std::move(modifs),
+        std::string{id.raw()});
   }
 
   report_error(ec::expected_type, current(), "An identifier, *, *mut or [] was expected.");
@@ -735,54 +757,10 @@ type_ptr parser_impl::type_with_colon() {
 
   consume();
 
-  // references can only appear at the very beginning
-  if (current().is(kind::symbol_pound)) {
-    auto pound = consume();
-
-    if (current().is(kind::keyword_mut)) {
-      consume();
-
-      auto type = finish_type();
-
-      return std::make_unique<ast::reference>(srcinfo::from(pound.info(), type->info()),
-          ast::reference_type::mut_ref,
-          std::move(type));
-    }
-
-    auto type = finish_type();
-
-    return std::make_unique<ast::reference>(srcinfo::from(pound.info(), type->info()),
-        ast::reference_type::ref,
-        std::move(type));
-  }
-
-  return finish_type();
+  return read_type();
 }
 
-type_ptr parser_impl::type_without_colon() {
-  // references can only appear at the very beginning
-  if (current().is(kind::symbol_pound)) {
-    auto pound = consume();
-
-    if (current().is(kind::keyword_mut)) {
-      consume();
-
-      auto type = finish_type();
-
-      return std::make_unique<ast::reference>(srcinfo::from(pound.info(), type->info()),
-          ast::reference_type::mut_ref,
-          std::move(type));
-    }
-
-    auto type = finish_type();
-
-    return std::make_unique<ast::reference>(srcinfo::from(pound.info(), type->info()),
-        ast::reference_type::ref,
-        std::move(type));
-  }
-
-  return finish_type();
-}
+type_ptr parser_impl::type_without_colon() { return read_type(); }
 
 stmt_ptr parser_impl::variable() {
   auto begin = consume();

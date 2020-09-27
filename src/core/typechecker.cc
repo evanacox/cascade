@@ -1,26 +1,44 @@
 #include "core/typechecker.hh"
 #include "ast/ast.hh"
+#include "ast/detail/declarations.hh"
+#include "ast/detail/types.hh"
 #include "core/lexer.hh"
+#include "errors/error.hh"
+#include "fmt/format.h"
+#include "util/types.hh"
 #include <cassert>
+#include <deque>
+#include <iostream>
+#include <memory>
 #include <string>
 #include <unordered_map>
 
 using namespace cascade;
 class scope;
 
-template <class T>
-using symbol_table = std::unordered_map<T, std::reference_wrapper<ast::type_base>>;
-using optional_parent = std::optional<std::reference_wrapper<scope>>;
 using kind = ast::kind;
-using type_id = std::string;
+using mods = ast::type_data::type_modifiers;
+using base = ast::type_data::type_base;
+using ec = errors::error_code;
+
+static std::string expected_type(const ast::type_data &expected, const ast::type_data &got) {
+  return fmt::format("Expected type '{}', got type '{}'.",
+      util::to_string(expected),
+      util::to_string(got));
+}
 
 class scope {
-  symbol_table<std::string_view> m_table;
+  /** @brief Variables mapped to their types */
+  std::unordered_map<std::string_view, ast::type_data> m_table;
 
-  optional_parent m_parent;
+  /** @brief Type aliases mapped to actual types */
+  std::unordered_map<std::string_view, ast::type_data> m_types;
+
+  std::optional<std::reference_wrapper<scope>> m_parent;
 
 public:
-  explicit scope(optional_parent parent = std::nullopt) : m_parent(std::move(parent)) {}
+  explicit scope(std::optional<std::reference_wrapper<scope>> parent = std::nullopt)
+      : m_parent(std::move(parent)) {}
 
   /**
    * @brief Whether or not the scope includes that symbol
@@ -42,20 +60,54 @@ public:
    * @brief Gets the type associated with a name
    * @param name The name to get
    */
-  ast::type_base &get(std::string_view name) {
+  ast::type_data &get(std::string_view name) {
     assert(has(name) && "attempting to get non-existent variable!");
 
     if (m_table.find(name) != m_table.end()) {
-      return m_table.at(name).get();
+      return m_table.at(name);
     }
 
     return m_parent.value().get().get(name);
   }
+
+  void set(std::string_view name, ast::type_data type) {
+    m_table.insert_or_assign(name, std::move(type));
+  }
+
+  bool has_alias(std::string_view name) {
+    if (m_types.find(name) != m_table.end()) {
+      return true;
+    }
+
+    if (m_parent) {
+      return m_parent.value().get().has_alias(name);
+    }
+
+    return false;
+  }
+
+  ast::type_data &get_alias(std::string_view name) {
+    assert(has_alias(name) && "attempting to get non-existent variable!");
+
+    if (m_types.find(name) != m_types.end()) {
+      return m_types.at(name);
+    }
+
+    return m_parent.value().get().get_alias(name);
+  }
+
+  void set_alias(std::string_view name, ast::type_data type) {
+    m_types.insert_or_assign(name, std::move(type));
+  }
+
+  std::unordered_map<std::string_view, ast::type_data> &table() { return m_table; };
+
+  std::unordered_map<std::string_view, ast::type_data> &types() { return m_types; };
 };
 
-class typechecker : ast::visitor<type_id> {
+class typechecker : public ast::visitor<ast::type_data> {
   /** @brief List of the ASTs */
-  std::vector<ast::program> m_programs;
+  std::vector<ast::program> &m_programs;
 
   /**
    * @brief List with size equal to m_program. m_program[0]'s scope is m_global_scope[0],
@@ -66,12 +118,18 @@ class typechecker : ast::visitor<type_id> {
   /** @brief Report function for errors */
   core::report_fn m_report;
 
-public:
-  /** @brief Creates a typechecker */
-  explicit typechecker(std::vector<ast::program> progs, core::report_fn report);
+  bool m_has_failed = false;
 
-  /** @brief Typechecks the program, sets up the main symbol table(s) */
-  bool typecheck();
+  std::string_view m_current_source;
+
+  /** @brief VIEW into the current scope, MAY POINT TO STACK OBJECT */
+  std::reference_wrapper<scope> m_current_scope;
+
+  /**
+   * @brief Handles adding a declaration to the global scope initially
+   * needs to be its own function so it can be recursive for exports
+   */
+  void handle_single_declaration(const ast::declaration &ref);
 
   /**
    * @brief Goes through all "global" symbols for a module and sets their type
@@ -79,179 +137,386 @@ public:
    */
   void register_global_symbols(ast::program &prog);
 
-#define VISIT(type) virtual type_id visit(ast::type &) final
+  /**
+   * @brief Typechecks a single program
+   * @param prog The program to check
+   */
+  bool typecheck_program(ast::program &prog);
+
+  /**
+   * @brief Reports an error and sets the flags to go with it
+   * @param node The node to report on
+   * @param code The error code
+   * @param message The message to go with the error
+   */
+  void report(const ast::node &node, ec code, std::string message = "");
+
+  /**
+   * @brief Checks if @p from can be promoted to @p to
+   * @param from The starting type (e.g 'i8')
+   * @param to The ending type (e.g 'i64')
+   * @return Whether the implicit conversion is valid
+   */
+  bool can_promote(const ast::type_data &from, const ast::type_data &to);
+
+  /**
+   * @brief Attempts to get the result of an arithmetic binary expression from two types
+   * @param lhs Type of the LHS value
+   * @param rhs Type of the RHS value
+   * @return A type, if possible
+   */
+  ast::type_data binary_convert(const ast::type_data &lhs, const ast::type_data &rhs);
+
+public:
+  /** @brief Creates a typechecker */
+  explicit typechecker(std::vector<ast::program> &progs, core::report_fn report);
+
+  /** @brief Typechecks the programs, sets up the main symbol table(s) */
+  bool typecheck(const std::vector<std::string_view> &sources);
+
+#define VISIT(type) virtual ast::type_data visit(ast::type &) final
 
   CASCADE_VISIT_TYPES
 
 #undef VISIT
 };
 
-#undef VISIT
-
-typechecker::typechecker(std::vector<ast::program> progs, core::report_fn report)
-    : m_programs(std::move(progs))
+typechecker::typechecker(std::vector<ast::program> &progs, core::report_fn report)
+    : m_programs(progs)
     , m_global_scopes(m_programs.size())
-    , m_report(std::move(report)) {}
+    , m_report(std::move(report))
+    , m_current_scope(m_global_scopes.front()) {}
 
-type_id typechecker::visit(ast::type_base &ref) {
-  (void)ref;
-  return "type_base";
+void typechecker::report(const ast::node &node, ec code, std::string message) {
+  auto err = std::make_unique<errors::type_error>(code,
+      node,
+      m_current_source,
+      message == "" ? std::nullopt : std::make_optional(message));
+
+  m_report(std::move(err));
+
+  m_has_failed = true;
 }
 
-type_id typechecker::visit(ast::const_decl &ref) {
-  (void)ref;
-  return "type_base";
+bool typechecker::can_promote(const ast::type_data &from, const ast::type_data &to) {
+  // no implicit conversions between f to u or i, or i to u
+  if (from.is_builtin()) {
+    // only same base types can be promoted, and only widening
+    // promotions are allowed. e.g `f32 -> f64` or `u8 -> u8` is allowed, but
+    // `i64` -> `i32` is not.
+    if (from.base() == to.base()) {
+      return from.precision() <= to.precision();
+    }
+  }
+
+  return false;
 }
 
-type_id typechecker::visit(ast::static_decl &ref) {
-  (void)ref;
-  return "type_base";
+ast::type_data typechecker::visit(ast::type &ref) { return ref.data(); }
+
+ast::type_data typechecker::visit(ast::const_decl &ref) {
+  auto initializer_type = ref.initializer().accept(*this);
+
+  // e.g `const x = 5;`
+  if (ref.type().data().is(ast::type::type_base::implied)) {
+    // update AST value and the typechecker's representation
+    ref.type().data() = std::move(initializer_type);
+    m_global_scopes.back().set(ref.name(), ref.type().data());
+  }
+
+  // e.g `const x: i32 = 3.5;`
+  else if (initializer_type != ref.type().data()) {
+    report(ref, ec::mismatched_types, expected_type(ref.type().data(), initializer_type));
+  }
+
+  return ref.type().data();
 }
 
-type_id typechecker::visit(ast::argument &ref) {
-  (void)ref;
-  return "type_base";
+ast::type_data typechecker::visit(ast::static_decl &ref) {
+  auto initializer_type = ref.initializer().accept(*this);
+
+  // e.g `static x = 5;`
+  if (ref.type().data().is(ast::type::type_base::implied)) {
+    ref.type().data() = std::move(initializer_type);
+    m_global_scopes.back().set(ref.name(), ref.type().data());
+  }
+
+  // e.g `static x: i32 = 3.5;`
+  else if (initializer_type != ref.type().data()) {
+    report(ref, ec::mismatched_types, expected_type(ref.type().data(), initializer_type));
+  }
+
+  return ref.type().data();
 }
 
-type_id typechecker::visit(ast::fn &ref) {
+ast::type_data typechecker::visit(ast::argument &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::module_decl &ref) {
+ast::type_data typechecker::visit(ast::fn &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::import_decl &ref) {
+ast::type_data typechecker::visit(ast::module_decl &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::export_decl &ref) {
+ast::type_data typechecker::visit(ast::import_decl &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::char_literal &ref) {
+ast::type_data typechecker::visit(ast::export_decl &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::string_literal &ref) {
+ast::type_data typechecker::visit(ast::char_literal &ref) {
   (void)ref;
-  throw std::logic_error{"string literals not implemented! figure out how slices will work"};
+  return ast::type_data({}, base::integer, 8);
 }
 
-type_id typechecker::visit(ast::int_literal &ref) {
+ast::type_data typechecker::visit(ast::string_literal &ref) {
+  (void)ref;
+  assert(false && "Not implemented");
+}
+
+ast::type_data typechecker::visit(ast::int_literal &ref) {
   // todo: check for suffixes?
   (void)ref;
-  return "i32";
+  return ast::type_data({}, base::integer, 32);
 }
 
-type_id typechecker::visit(ast::float_literal &ref) {
+ast::type_data typechecker::visit(ast::float_literal &ref) {
   // todo: check for suffixes
   (void)ref;
-  return "f32";
+  return ast::type_data({}, base::floating_point, 32);
 }
 
-type_id typechecker::visit([[maybe_unused]] ast::bool_literal &ref) { return "bool"; }
-
-type_id typechecker::visit(ast::identifier &ref) {
+ast::type_data typechecker::visit(ast::bool_literal &ref) {
   (void)ref;
-  return "type_base";
+  return ast::type_data({}, base::boolean, 1);
 }
 
-type_id typechecker::visit(ast::call &ref) {
+ast::type_data typechecker::visit(ast::identifier &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::binary &ref) {
+ast::type_data typechecker::visit(ast::call &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::unary &ref) {
+ast::type_data typechecker::visit(ast::binary &ref) {
   using opkind = core::token::kind;
 
+#define ARITHMETIC(op)                                                                             \
+  case op: {                                                                                       \
+    auto left_type = ref.lhs().accept(*this);                                                      \
+    auto right_type = ref.rhs().accept(*this);                                                     \
+                                                                                                   \
+    if () {                                                                                        \
+    }
+
   switch (ref.op()) {
-    case opkind::symbol_at:
-      return std::string("*mut") + ref.rhs().accept(*this);
+    case opkind::symbol_plus: {
+      auto type = ref.rhs().accept(*this);
+      type.modifiers().push_front(mods::mut_ptr);
+      return type;
+    }
+    case opkind::symbol_star: {
+      auto type = ref.rhs().accept(*this);
+
+      if (type.modifiers().front() != mods::mut_ptr || type.modifiers().front() != mods::ptr) {
+        report(ref,
+            ec::dereference_requires_pointer_type,
+            fmt::format("Expected a pointer type, got type '{}'", util::to_string(type)));
+      }
+
+      return type;
+    }
+    case opkind::symbol_pound: {
+      auto type = ref.rhs().accept(*this);
+      type.modifiers().push_front(mods::mut_ref);
+      return type;
+    }
+    case opkind::symbol_hyphen:
+      return ref.rhs().accept(*this);
     default:
       break;
   }
+
+  assert(false && "How did we get here?");
 }
 
-type_id typechecker::visit(ast::field_access &ref) {
+ast::type_data typechecker::visit(ast::unary &ref) {
+  using opkind = core::token::kind;
+
+  switch (ref.op()) {
+    case opkind::symbol_at: {
+      auto type = ref.rhs().accept(*this);
+      type.modifiers().push_front(mods::mut_ptr);
+      return type;
+    }
+    case opkind::symbol_star: {
+      auto type = ref.rhs().accept(*this);
+
+      if (type.modifiers().front() != mods::mut_ptr || type.modifiers().front() != mods::ptr) {
+        report(ref,
+            ec::dereference_requires_pointer_type,
+            fmt::format("Expected a pointer type, got type '{}'", util::to_string(type)));
+      }
+
+      return type;
+    }
+    case opkind::symbol_pound: {
+      auto type = ref.rhs().accept(*this);
+      type.modifiers().push_front(mods::mut_ref);
+      return type;
+    }
+    case opkind::symbol_hyphen:
+      return ref.rhs().accept(*this);
+    default:
+      break;
+  }
+
+  assert(false && "How did we get here?");
+}
+
+ast::type_data typechecker::visit(ast::field_access &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::index &ref) {
+ast::type_data typechecker::visit(ast::index &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::if_else &ref) {
+ast::type_data typechecker::visit(ast::if_else &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::struct_init &ref) {
+ast::type_data typechecker::visit(ast::struct_init &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::block &ref) {
+ast::type_data typechecker::visit(ast::block &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::expression_statement &ref) {
+ast::type_data typechecker::visit(ast::expression_statement &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::let &ref) {
+ast::type_data typechecker::visit(ast::let &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::mut &ref) {
+ast::type_data typechecker::visit(ast::mut &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::ret &ref) {
+ast::type_data typechecker::visit(ast::ret &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::loop &ref) {
+ast::type_data typechecker::visit(ast::loop &ref) {
   (void)ref;
-  return "type_base";
+  assert(false && "Not implemented");
 }
 
-type_id typechecker::visit(ast::type_decl &ref) {
-  (void)ref;
-  return "type_base";
-}
+ast::type_data typechecker::visit(ast::type_decl &ref) { return ref.type().data(); }
 
-void typechecker::register_global_symbols(ast::program &prog) {
-  for (auto &decl : prog.decls()) {
-    (void)decl;
+void typechecker::handle_single_declaration(const ast::declaration &decl) {
+  switch (decl.raw_kind()) {
+    case kind::declaration_const: {
+      const auto &ref = static_cast<const ast::const_decl &>(decl);
+      m_global_scopes.back().set(ref.name(), ref.type().data());
+      break;
+    }
+    case kind::declaration_static: {
+      const auto &ref = static_cast<const ast::static_decl &>(decl);
+      m_global_scopes.back().set(ref.name(), ref.type().data());
+      break;
+    }
+    case kind::declaration_export: {
+      const auto &ref = static_cast<const ast::export_decl &>(decl);
+      handle_single_declaration(ref.exported());
+      break;
+    }
+    case kind::declaration_fn: {
+      const auto &ref = static_cast<const ast::fn &>(decl);
+      m_global_scopes.back().set(ref.name(), ref.type().data());
+      break;
+    }
+    case kind::declaration_type: {
+      const auto &ref = static_cast<const ast::type_decl &>(decl);
+      m_global_scopes.back().set_alias(ref.name(), ref.type().data());
+      break;
+    }
+    default:
+      assert(false && "How did we get here?");
   }
 }
 
-bool typechecker::typecheck() {
-  //
-
-  return true;
+void typechecker::register_global_symbols(ast::program &prog) {
+  for (const auto &decl : prog.decls()) {
+    handle_single_declaration(static_cast<const ast::const_decl &>(*decl));
+  }
 }
 
-bool core::typecheck(std::vector<ast::program> &programs, core::report_fn report) {
-  typechecker checker(std::move(programs), std::move(report));
+bool typechecker::typecheck_program(ast::program &prog) {
+  // initializes a new "global scope" for each module
+  m_global_scopes.emplace_back();
 
-  return checker.typecheck();
+  register_global_symbols(prog);
+
+  m_current_scope = m_global_scopes.back();
+
+  for (auto &decl : prog.decls()) {
+    decl->accept(*this);
+  }
+
+  std::cout << "== symbol types ==\n";
+  for (auto &[k, v] : m_global_scopes.back().table()) {
+    fmt::print("{{ name: {}, value: {} }}\n", k, util::to_string(v));
+  }
+
+  std::cout << "== type aliases ==\n";
+  for (auto &[k, v] : m_global_scopes.back().types()) {
+    fmt::print("{{ name: {}, value: {} }}\n", k, util::to_string(v));
+  }
+
+  return m_has_failed;
+}
+
+bool typechecker::typecheck(const std::vector<std::string_view> &sources) {
+  auto src_it = sources.begin();
+
+  for (auto &prog : m_programs) {
+    m_current_source = *src_it++;
+    typecheck_program(prog);
+  }
+
+  return m_has_failed;
+}
+
+bool core::typecheck(std::vector<ast::program> &programs,
+    const std::vector<std::string_view> &sources,
+    core::report_fn report) {
+  typechecker checker(programs, std::move(report));
+
+  return checker.typecheck(sources);
 }

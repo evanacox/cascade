@@ -32,8 +32,6 @@
 using namespace cascade::util;
 
 namespace fs = std::filesystem;
-using ap = argument_parser;
-using options = ap::options;
 
 static std::optional<emitted> emitted_from_string(const std::string &input) {
   if (input == "llvm-ir")
@@ -71,7 +69,7 @@ static constexpr auto default_output = "main.exe";
 static constexpr auto default_output = "main";
 #endif
 
-options::compilation_options(std::vector<std::string> paths,
+compilation_options::compilation_options(std::vector<std::string> paths,
     optimization_level opt_level,
     bool debug_symbols,
     emitted emitted,
@@ -84,10 +82,10 @@ options::compilation_options(std::vector<std::string> paths,
     , m_target_triple(std::move(triple))
     , m_output(std::move(output)) {}
 
-ap::argument_parser(int argc, const char **argv) : m_argc{argc}, m_argv{argv} {}
+std::optional<compilation_options> cascade::util::parse(int argc, const char **argv) {
+  using options = compilation_options;
 
-std::optional<options> ap::parse() {
-  cxxopts::Options console_options(m_argv[0], "Compiler for the Cascade language\n");
+  cxxopts::Options console_options(argv[0], "Compiler for the Cascade language\n");
 
   console_options.custom_help("[options]");
   console_options.positional_help("file(s)...\n\nOptions:");
@@ -120,7 +118,7 @@ std::optional<options> ap::parse() {
 
   try {
     console_options.parse_positional({"input-files"});
-    auto result = console_options.parse(m_argc, m_argv);
+    auto result = console_options.parse(argc, argv);
 
     if (result.count("help")) {
       std::cout << console_options.help();

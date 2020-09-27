@@ -25,145 +25,90 @@
 #include "ast/detail/types.hh"
 #include <cassert>
 #include <fmt/format.h>
+#include <iostream>
+#include <type_traits>
+#include <variant>
 
 using namespace cascade;
 using kind = ast::kind;
 
-void util::traverse_type(const ast::type_base &node,
-    std::function<void(const ast::pointer &)> ptr_fn,
-    std::function<void(const ast::reference &)> ref_fn,
-    std::function<void(const ast::array &)> array_fn,
-    std::function<void(const ast::builtin &)> builtin_fn,
-    std::function<void(const ast::user_defined &)> userdef_fn) {
+template <class> inline constexpr bool always_false_v = false;
 
-  auto *first = &node;
+std::string util::to_string(const ast::type_data &node) {
+  using type_base = ast::type_data::type_base;
 
-  while (!first->is_one_of(kind::type_builtin, kind::type_userdef)) {
-    switch (first->raw_kind()) {
-      case kind::type_ptr: {
-        auto &ptr = static_cast<const ast::pointer &>(*first);
-        ptr_fn(ptr);
-        assert(first != &ptr.held());
-        first = &ptr.held();
-        break;
-      }
-      case kind::type_ref: {
-        auto &ref = static_cast<const ast::reference &>(*first);
-        ref_fn(ref);
-        assert(first != &ref.held());
-        first = &ref.held();
-        break;
-      }
-      case kind::type_array: {
-        auto &arr = static_cast<const ast::array &>(*first);
-        array_fn(arr);
-        assert(first != &arr.held());
-        first = &arr.held();
-        break;
-      }
-      default:
-        assert(false);
-    }
+  if (node.is(type_base::implied)) {
+    return "<implied>";
+  } else if (node.is(type_base::void_type)) {
+    return "<void>";
+  } else if (node.is(type_base::error_type)) {
+    return "<error-type>";
   }
 
-  if (first->is(kind::type_builtin)) {
-    builtin_fn(static_cast<const ast::builtin &>(*first));
-  } else if (first->is(kind::type_userdef)) {
-    userdef_fn(static_cast<const ast::user_defined &>(*first));
-  } else {
-    assert(false);
-  }
-}
-
-void util::traverse_type(ast::type_base &node,
-    std::function<void(ast::pointer &)> ptr_fn,
-    std::function<void(ast::reference &)> ref_fn,
-    std::function<void(ast::array &)> array_fn,
-    std::function<void(ast::builtin &)> builtin_fn,
-    std::function<void(ast::user_defined &)> userdef_fn) {
-
-  auto *first = &node;
-
-  while (!first->is_one_of(kind::type_builtin, kind::type_userdef)) {
-    switch (first->raw_kind()) {
-      case kind::type_ptr: {
-        auto &ptr = static_cast<ast::pointer &>(*first);
-        ptr_fn(ptr);
-        assert(first != &ptr.held());
-        first = &ptr.held();
-        break;
-      }
-      case kind::type_ref: {
-        auto &ref = static_cast<ast::reference &>(*first);
-        ref_fn(ref);
-        assert(first != &ref.held());
-        first = &ref.held();
-        break;
-      }
-      case kind::type_array: {
-        auto &arr = static_cast<ast::array &>(*first);
-        array_fn(arr);
-        assert(first != &arr.held());
-        first = &arr.held();
-        break;
-      }
-      default:
-        assert(false);
-    }
-  }
-
-  if (first->is(kind::type_builtin)) {
-    builtin_fn(static_cast<ast::builtin &>(*first));
-  } else if (first->is(kind::type_userdef)) {
-    userdef_fn(static_cast<ast::user_defined &>(*first));
-  } else {
-    assert(false);
-  }
-}
-
-std::string util::to_string(const ast::type_base &node) {
   std::string str;
 
-  util::traverse_type(
-      node,
-      [&](const ast::pointer &ptr) {
-        if (ptr.ptr_type() == ast::pointer_type::mut_ptr) {
-          str += "mut ";
-        }
+  for (auto mod : node.modifiers()) {
+    using modif = ast::type::type_modifiers;
 
-        str += "ptr: ";
-      },
-      [&](const ast::reference &ref) {
-        if (ref.ref_type() == ast::reference_type::mut_ref) {
-          str += "mut ";
-        }
+    switch (mod) {
+      case modif::ref:
+        str += "&";
+        break;
+      case modif::mut_ref:
+        str += "&mut ";
+        break;
+      case modif::ptr:
+        str += "*";
+        break;
+      case modif::mut_ptr:
+        str += "*mut ";
+        break;
+      case modif::array:
+        str += "[]";
+        break;
+    }
+  }
 
-        str += "ref: ";
-      },
-      [&](const ast::array &arr) { str += fmt::format("[{}]", arr.length()); },
-      [&](const ast::builtin &builtin) {
-        str += "builtin: ";
+  // clang-format off
+  std::visit([&](auto &&data) {
+    using T = std::decay_t<decltype(data)>;
+    using base = ast::type_data::type_base;
 
-        switch (builtin.num_type()) {
-          case ast::numeric_type::boolean:
-            str += "bool";
-            break;
-          case ast::numeric_type::integer:
-            str += fmt::format("i{}", builtin.width());
-            break;
-          case ast::numeric_type::unsigned_integer:
-            str += fmt::format("u{}", builtin.width());
-            break;
-          case ast::numeric_type::floating_point:
-            str += fmt::format("f{}", builtin.width());
-            break;
-        }
-      },
-      [&](const ast::user_defined &userdef) { str += fmt::format("userdef: {}", userdef.name()); });
+    if constexpr (std::is_same_v<T, std::size_t>) {               
+      // C++ needs pattern matching
+      switch (node.base()) {
+        case base::integer:
+          str += "i";
+          str += std::to_string(data);
+          break;
+        case base::unsigned_integer:
+          str += "u";
+          str += std::to_string(data);
+          break;
+        case base::boolean:
+          assert(data == 1 && "bool shouldn't have precision");
+          str += "bool";
+          break;
+        case base::floating_point:
+          str += "f";
+          str += std::to_string(data);
+          break;
+        default:
+          assert(false && "how exactly did we get here");
+      }
+    } else if constexpr (std::is_same_v<T, std::string>) {
+      assert(node.base() == base::user_defined);
+      str += data;
+    } else {
+      // will show the type that caused the failure
+      static_assert(always_false_v<T>, "util::to_string: non-exhaustive visitor");
+    }
+  }, node.data());
+  // clang-format on
 
   return str;
 }
 
-std::size_t util::hash(const ast::type_base &node) {
+std::size_t util::hash(const ast::type_data &node) {
   return std::hash<std::string>{}(util::to_string(node));
 }

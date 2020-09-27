@@ -33,38 +33,36 @@
 #include <vector>
 
 namespace cascade::util {
-  namespace detail {
-    /** @brief Represents a file that was successfully read */
-    class file_source {
-      std::filesystem::path m_path;
-      std::string m_source;
+  /** @brief Represents a file that was successfully read */
+  class file_source {
+    std::filesystem::path m_path;
+    std::string m_source;
 
-      friend void normalize(file_source &);
+    friend void normalize(file_source &);
 
-    public:
-      file_source(std::filesystem::path path, std::string source)
-          : m_path(std::move(path))
-          , m_source(std::move(source)) {}
-
-      /**
-       * @brief Returns the source code
-       * @return A string_view to the source code for the file
-       */
-      std::string_view source() const { return m_source; }
-
-      /**
-       * @brief Returns the path
-       * @return A copy of the path
-       */
-      std::filesystem::path path() const { return m_path; }
-    };
+  public:
+    file_source(std::filesystem::path path, std::string source)
+        : m_path(std::move(path))
+        , m_source(std::move(source)) {}
 
     /**
-     * @brief "Normalizes" a string by turning it into UTF-8 LF
-     * @param ref The file to normalize
+     * @brief Returns the source code
+     * @return A string_view to the source code for the file
      */
-    void normalize(file_source &ref);
-  } // namespace detail
+    std::string_view source() const { return m_source; }
+
+    /**
+     * @brief Returns the path
+     * @return A copy of the path
+     */
+    std::filesystem::path path() const { return m_path; }
+  };
+
+  /**
+   * @brief "Normalizes" a string by turning it into UTF-8 LF
+   * @param ref The file to normalize
+   */
+  void normalize(file_source &ref);
 
   /**
    * @brief Marker type for a type that can be used to read source code.
@@ -73,8 +71,8 @@ namespace cascade::util {
    */
   template <class T> class source_reading_policy {
   public:
-    using opt_file_list = std::optional<std::vector<detail::file_source>>;
-    using options = argument_parser::options;
+    using opt_file_list = std::optional<std::vector<file_source>>;
+    using options = compilation_options;
 
     /**
      * @brief The function that util::read_source calls
@@ -113,18 +111,12 @@ namespace cascade::util {
    * @return A list of source code strings
    */
   template <class T>
-  std::optional<std::vector<detail::file_source>> read_source(argument_parser::options &options) {
+  std::optional<std::vector<file_source>> read_source(compilation_options &options) {
     // only types that actually implement `read` can be used here
     static_assert(std::is_base_of_v<source_reading_policy<T>, T>,
         "T must fufill the sourcereader policy!");
 
-    auto source = source_reading_policy<T>::read_source(options);
-
-    if (!source) {
-      return std::nullopt;
-    }
-
-    return source;
+    return source_reading_policy<T>::read_source(options);
   }
 } // namespace cascade::util
 

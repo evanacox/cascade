@@ -256,6 +256,97 @@ namespace cascade::errors {
      */
     virtual void accept(error_visitor &visitor) final { visitor.visit(*this); }
   };
+
+  class type_error : public error {
+    /** @brief Code of the error being printed */
+    error_code m_code;
+
+    /** @brief Pointer to the node */
+    const ast::node &m_node;
+
+    /** @brief A helpful message to show under the error */
+    std::optional<std::string> m_note;
+
+    std::string_view m_source;
+
+  public:
+    /**
+     * @brief Creates a new error
+     * @param code The error code
+     * @param tok The offending token
+     */
+    explicit type_error(error_code code,
+        const ast::node &node,
+        std::string_view source,
+        std::optional<std::string> note = std::nullopt)
+        : m_code(code)
+        , m_node(std::move(node))
+        , m_note(std::move(note))
+        , m_source(std::move(source)) {}
+
+    /**
+     * @brief Returns the error lookup code
+     * @return The code as a short
+     */
+    [[nodiscard]] virtual error_code code() const final { return m_code; }
+
+    /**
+     * @brief Returns the error's offset in the source
+     * @return An offset
+     */
+    [[nodiscard]] virtual std::size_t position() const final { return m_node.info().position(); }
+
+    /**
+     * @brief Returns the line the error appears on
+     * @return The line of the error
+     */
+    [[nodiscard]] virtual std::size_t line() const final { return m_node.info().line(); }
+
+    /**
+     * @brief Returns the column of the error
+     * @return The column number
+     */
+    [[nodiscard]] virtual std::size_t column() const final { return m_node.info().column(); }
+
+    /**
+     * @brief Returns the number of characters in the error
+     * @return The number of characters
+     */
+    [[nodiscard]] virtual std::size_t length() const final { return m_node.info().length(); }
+
+    /**
+     * @brief Returns the entire source string causing the error
+     * @param source The source code to get a substr of
+     * @return A substring of @p source
+     */
+    [[nodiscard]] std::string_view raw(std::string_view source) const {
+      return source.substr(m_node.info().position(), m_node.info().length());
+    }
+
+    /**
+     * @brief Returns the path of the error
+     * @return The path of the file the error is in
+     */
+    [[nodiscard]] virtual std::filesystem::path path() const { return m_node.info().path(); }
+
+    /**
+     * @brief Returns the "note" message
+     * @return The note message
+     */
+    [[nodiscard]] virtual std::optional<std::string> note() const { return m_note; }
+
+    /**
+     * @brief Returns the source that this type error originated from
+     * @return A string_view
+     */
+    [[nodiscard]] std::string_view source() const { return m_source; }
+
+    /**
+     * @brief Accepts a visitor
+     * @param visitor The visitor to visit
+     */
+    virtual void accept(error_visitor &visitor) final { visitor.visit(*this); }
+  };
 } // namespace cascade::errors
 
 #endif

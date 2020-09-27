@@ -92,7 +92,7 @@ namespace cascade::ast {
       case kind::expression_block:
         return reinterpret_cast<block &>(*this).visit_accept(visitor);
       case kind::expression_array:
-        return reinterpret_cast<array &>(*this).visit_accept(visitor);
+        throw std::logic_error{"unimplemented"};
       case kind::expression_struct:
         return reinterpret_cast<struct_init &>(*this).visit_accept(visitor);
       case kind::statement_expression:
@@ -103,14 +103,10 @@ namespace cascade::ast {
         return reinterpret_cast<mut &>(*this).visit_accept(visitor);
       case kind::statement_ret:
         return reinterpret_cast<ret &>(*this).visit_accept(visitor);
-      case kind::type_ptr:
-      case kind::type_ref:
-      case kind::type_array:
-      case kind::type_builtin:
-      case kind::type_userdef:
+      case kind::type:
       case kind::type_implied:
       case kind::type_void:
-        return reinterpret_cast<type_base &>(*this).visit_accept(visitor);
+        return reinterpret_cast<type &>(*this).visit_accept(visitor);
     }
   }
 } // namespace cascade::ast

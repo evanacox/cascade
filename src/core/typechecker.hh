@@ -36,7 +36,9 @@ namespace cascade::core {
    * @param programs All the modules to attempt to combine
    * @param report The function to call for each error
    */
-  bool typecheck(std::vector<ast::program> &programs, report_fn report);
+  bool typecheck(std::vector<ast::program> &programs,
+      const std::vector<std::string_view> &files,
+      report_fn report);
 } // namespace cascade::core
 
 #endif

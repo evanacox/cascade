@@ -136,33 +136,10 @@ namespace cascade::util {
   };
 
   /**
-   * @brief Handles parsing the arguments for the program, and turns it into an
-   * easier to use format
+   * @brief Parses the program arguments
+   * @return The options given to the compiler
    */
-  class argument_parser {
-    /** @brief The number of arguments given to the program */
-    int m_argc;
-
-    /** @brief Pointer to the argument list */
-    const char **m_argv;
-
-  public:
-    /** @brief The type returned by the `parse` function */
-    using options = compilation_options;
-
-    /**
-     * @brief Creates a new argument parser
-     * @param argc The number of arguments given to the program
-     * @param argv Pointer to the argument list
-     */
-    explicit argument_parser(int argc, const char **argv);
-
-    /**
-     * @brief Parses the program arguments
-     * @return The options given to the compiler
-     */
-    std::optional<options> parse();
-  };
+  std::optional<compilation_options> parse(int argc, const char **argv);
 } // namespace cascade::util
 
 #endif

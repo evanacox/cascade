@@ -27,6 +27,7 @@
 #include "ast/ast.hh"
 #include "util/argument_parser.hh"
 #include "util/mixins.hh"
+#include "util/source_reader.hh"
 #include <filesystem>
 #include <optional>
 
@@ -39,7 +40,11 @@ namespace cascade {
   class driver : util::noncopyable {
     using stdpath = std::filesystem::path;
 
-    util::argument_parser m_arg_parser;
+    std::optional<util::compilation_options> m_options;
+
+    std::vector<ast::program> m_programs;
+
+    std::vector<std::string_view> m_sources;
 
     /**
      * @brief Attempts to parse a source string
@@ -48,6 +53,19 @@ namespace cascade {
      * @return An ast::program
      */
     [[nodiscard]] std::optional<ast::program> parse(stdpath path, std::string_view source);
+
+    /**
+     * @brief Parses a list of source files and puts them in m_program
+     * @param files The files to parse
+     * @return Whether any files failed to parse
+     */
+    [[nodiscard]] bool parse(const std::vector<util::file_source> &files);
+
+    /**
+     * @brief Typechecks a list of programs and handles error reporting
+     * @return Whether any files failed to typecheck
+     */
+    [[nodiscard]] bool typecheck();
 
     /**
      * @brief Attempts to compile an AST

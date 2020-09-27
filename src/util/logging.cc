@@ -74,7 +74,7 @@ static std::string executable_name() {
   winsize w;
   ioctl(0, TIOCGWINSZ, &w);
   return {w.ws_row, w.ws_col};
-#else
+#elif defined(CASCADE_IS_WIN32)
   CONSOLE_SCREEN_BUFFER_INFO csbi;
 
   if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
@@ -143,15 +143,7 @@ void printer::accept_with_prefix(ast::node &node) {
   m_prefix = m_prefix.substr(0, m_prefix.size() - 2);
 }
 
-void printer::visit(ast::type_base &node) {
-  if (node.is(kind::type_implied)) {
-    std::cout << "<implied>\n";
-  } else if (node.is(kind::type_void)) {
-    std::cout << "<void>\n";
-  } else {
-    std::cout << util::to_string(node) << "\n";
-  }
-}
+void printer::visit(ast::type &node) { std::cout << util::to_string(node.data()) << "\n"; }
 
 void printer::visit(ast::type_decl &decl) {
   std::cout << "type alias {\n";
@@ -434,16 +426,29 @@ class logger::impl : public errors::error_visitor {
   void print_note(const errors::error &err) const;
 
 public:
-  impl(std::string_view source) : m_source(std::move(source)) {}
+  impl(std::string_view source) : m_source(std::move(source)) {
+#ifdef CASCADE_IS_WIN32
+    HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD console_mode;
+    GetConsoleMode(console_handle, &console_mode);
+    console_mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+    if (!SetConsoleMode(console_handle, console_mode)) {
+      auto e = GetLastError();
+
+      fmt::print("Error while enabling ANSI support: {}\n", e);
+    }
+#endif
+  }
 
   /** @brief Prints an error */
   void error(std::unique_ptr<errors::error> err);
 
-  /** @brief Visits a token_error */
   virtual void visit(errors::token_error &error) final;
 
-  /** @brief Visits an ast_error */
   virtual void visit(errors::ast_error &error) final;
+
+  virtual void visit(errors::type_error &error) final;
 };
 
 logger::logger(std::string_view source) : m_impl(std::make_unique<logger::impl>(source)) {}
@@ -467,13 +472,13 @@ void logger::impl::print_start(const errors::error &e) const {
   using namespace fmt::literals;
   using namespace errors;
 
-  auto size = terminal_size();
+  auto [_, cols] = terminal_size();
   auto path = e.path().lexically_relative(fs::current_path()).string();
   auto msg = fmt::format("[E{:04}] {}!", to_num(e.code()), error_message_from_code(e.code()));
 
   // 10u is 7 characters for "error: " + 1 for ' '
   // if the path can fit on the current line without wrapping
-  if (msg.size() + path.size() + 8u <= size.second) {
+  if (msg.size() + path.size() + 8u <= cols) {
     // error: {msg} {path}
     fmt::print("{} {} {}\n",
         formatted_error_tag(),
@@ -562,6 +567,14 @@ void logger::impl::visit(errors::token_error &err) {
 }
 
 void logger::impl::visit(errors::ast_error &err) {
+  print_start(err);
+  print_code(err);
+  point_out(err);
+  print_note(err);
+  std::cout << "\n";
+}
+
+void logger::impl::visit(errors::type_error &err) {
   print_start(err);
   print_code(err);
   point_out(err);

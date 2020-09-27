@@ -26,6 +26,7 @@
 
 #include "ast/visitor.hh"
 #include "core/lexer.hh"
+#include <variant>
 
 namespace cascade::ast {
   /** @brief A type of node */
@@ -36,11 +37,7 @@ namespace cascade::ast {
     literal_bool,
     literal_float,
     identifier,
-    type_ptr,
-    type_ref,
-    type_array,
-    type_builtin,
-    type_userdef,
+    type,
     type_implied,
     type_void,
     declaration_const,
@@ -196,21 +193,6 @@ namespace cascade::ast {
     [[nodiscard]] virtual bool is_declaration() const final { return false; }
 
     [[nodiscard]] virtual bool is_statement() const final { return false; }
-  };
-
-  /** @brief Tag type for types, defines the is_*() methods */
-  class type_base : public node, public visitable<type_base> {
-  public:
-    explicit type_base(kind t, core::source_info info) : node(std::move(t), std::move(info)) {}
-
-    [[nodiscard]] virtual bool is_expression() const final { return false; }
-
-    [[nodiscard]] virtual bool is_declaration() const final { return false; }
-
-    [[nodiscard]] virtual bool is_statement() const final { return false; }
-
-    // the objects representing types are recursive, a visitor would need to
-    // figure out the type anyway.
   };
 } // namespace cascade::ast
 

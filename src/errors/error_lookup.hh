@@ -52,6 +52,8 @@ namespace cascade::errors {
     cannot_export_export,
     duplicate_module,
     unexpected_builtin,
+    dereference_requires_pointer_type,
+    mismatched_types,
   };
 
   /**

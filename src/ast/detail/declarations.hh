@@ -33,7 +33,7 @@ namespace cascade::ast {
   class const_decl : public declaration, public visitable<const_decl> {
     std::string m_name;
     std::unique_ptr<expression> m_initializer;
-    std::unique_ptr<type_base> m_type;
+    std::unique_ptr<type> m_type;
 
   public:
     /**
@@ -46,7 +46,7 @@ namespace cascade::ast {
     explicit const_decl(core::source_info info,
         std::string name,
         std::unique_ptr<expression> init,
-        std::unique_ptr<type_base> type)
+        std::unique_ptr<type> type)
         : declaration(kind::declaration_const, std::move(info))
         , m_name(std::move(name))
         , m_initializer(std::move(init))
@@ -59,14 +59,14 @@ namespace cascade::ast {
     [[nodiscard]] expression &initializer() const { return *m_initializer; }
 
     /** @brief Gets the type of the declaration */
-    [[nodiscard]] type_base &type() const { return *m_type; }
+    [[nodiscard]] type &type() const { return *m_type; }
   };
 
   /** @brief Represents a `static` declaration */
   class static_decl : public declaration, public visitable<static_decl> {
     std::string m_name;
     std::unique_ptr<expression> m_initializer;
-    std::unique_ptr<type_base> m_type;
+    std::unique_ptr<type> m_type;
 
   public:
     /**
@@ -79,7 +79,7 @@ namespace cascade::ast {
     explicit static_decl(core::source_info info,
         std::string name,
         std::unique_ptr<expression> init,
-        std::unique_ptr<type_base> type)
+        std::unique_ptr<type> type)
         : declaration(kind::declaration_static, std::move(info))
         , m_name(std::move(name))
         , m_initializer(std::move(init))
@@ -92,16 +92,16 @@ namespace cascade::ast {
     [[nodiscard]] expression &initializer() const { return *m_initializer; }
 
     /** @brief Gets the type of the declaration */
-    [[nodiscard]] type_base &type() const { return *m_type; }
+    [[nodiscard]] type &type() const { return *m_type; }
   };
 
   /** @brief Represents a single argument declaration for a function */
   class argument : public declaration, public visitable<argument> {
     std::string m_name;
-    std::unique_ptr<type_base> m_type;
+    std::unique_ptr<type> m_type;
 
   public:
-    explicit argument(core::source_info info, std::string name, std::unique_ptr<type_base> type)
+    explicit argument(core::source_info info, std::string name, std::unique_ptr<type> type)
         : declaration(kind::declaration_argument, std::move(info))
         , m_name(std::move(name))
         , m_type(std::move(type)) {}
@@ -110,14 +110,14 @@ namespace cascade::ast {
     [[nodiscard]] std::string_view name() const { return m_name; }
 
     /** @brief Returns a pointer to the argument's type signature */
-    [[nodiscard]] type_base &type() const { return *m_type; }
+    [[nodiscard]] type &type() const { return *m_type; }
   };
 
   /** @brief Represents a function */
   class fn : public declaration, public visitable<fn> {
     std::string m_name;
     std::vector<argument> m_args;
-    std::unique_ptr<type_base> m_return_type;
+    std::unique_ptr<type> m_return_type;
     std::unique_ptr<expression> m_block;
 
   public:
@@ -131,7 +131,7 @@ namespace cascade::ast {
     explicit fn(core::source_info info,
         std::string name,
         std::vector<argument> args,
-        std::unique_ptr<type_base> type,
+        std::unique_ptr<type> type,
         std::unique_ptr<expression> block)
         : declaration(kind::declaration_fn, std::move(info))
         , m_name(std::move(name))
@@ -146,7 +146,7 @@ namespace cascade::ast {
     [[nodiscard]] std::vector<argument> &args() { return m_args; }
 
     /** @brief Returns a pointer to the argument's type signature */
-    [[nodiscard]] type_base &type() const { return *m_return_type; }
+    [[nodiscard]] type &type() const { return *m_return_type; }
 
     /** @brief Returns a pointer to the body of the fn */
     [[nodiscard]] expression &body() const { return *m_block; }
@@ -221,7 +221,7 @@ namespace cascade::ast {
   };
 
   class type_decl : public declaration, public visitable<type_decl> {
-    std::unique_ptr<type_base> m_type;
+    std::unique_ptr<type> m_type;
     std::string m_name;
 
   public:
@@ -231,13 +231,13 @@ namespace cascade::ast {
      * @param type The type being aliased
      * @param name The name of the alias
      */
-    explicit type_decl(core::source_info info, std::unique_ptr<type_base> type, std::string name)
+    explicit type_decl(core::source_info info, std::unique_ptr<type> type, std::string name)
         : declaration(kind::declaration_type, std::move(info))
         , m_type(std::move(type))
         , m_name(std::move(name)) {}
 
     /** @brief Returns a pointer to the item being exported */
-    [[nodiscard]] type_base &type() const { return *m_type; }
+    [[nodiscard]] type &type() const { return *m_type; }
 
     /** @brief Returns a string_view to the alias given to the type */
     [[nodiscard]] std::string_view name() const { return m_name; }

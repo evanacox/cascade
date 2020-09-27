@@ -33,7 +33,7 @@ using opt_file_list = file_reader::opt_file_list;
 using options = file_reader::options;
 namespace fs = std::filesystem;
 
-void detail::normalize(detail::file_source &ref) {
+void cascade::util::normalize(file_source &ref) {
   ref.m_path = ref.m_path.lexically_normal().lexically_relative(fs::current_path());
 
   // transform CRLF into LF
@@ -57,7 +57,7 @@ void detail::normalize(detail::file_source &ref) {
 #include <iostream>
 
 opt_file_list file_reader::read(options &opts) {
-  std::vector<detail::file_source> sources;
+  std::vector<file_source> sources;
 
   // if any files have an error, no file contents are returned
   auto had_error = false;

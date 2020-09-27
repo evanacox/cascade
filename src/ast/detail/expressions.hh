@@ -159,12 +159,12 @@ namespace cascade::ast {
   class block : public expression, public visitable<block> {
     std::vector<std::unique_ptr<statement>> m_statements;
 
-    std::unique_ptr<type_base> m_return_type;
+    std::unique_ptr<type> m_return_type;
 
   public:
     explicit block(core::source_info info,
         std::vector<std::unique_ptr<statement>> stmts,
-        std::unique_ptr<type_base> type)
+        std::unique_ptr<type> type)
         : expression(kind::expression_block, std::move(info))
         , m_statements(std::move(stmts))
         , m_return_type(std::move(type)) {}
@@ -173,7 +173,7 @@ namespace cascade::ast {
       return m_statements;
     }
 
-    [[nodiscard]] type_base &type() const { return *m_return_type; }
+    [[nodiscard]] type &type() const { return *m_return_type; }
   };
 
   class struct_init : public expression, public visitable<struct_init> {

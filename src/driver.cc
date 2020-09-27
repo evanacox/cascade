@@ -24,50 +24,93 @@
 #include "driver.hh"
 #include "core/lexer.hh"
 #include "core/parser.hh"
+#include "core/typechecker.hh"
 #include "errors/error.hh"
 #include "util/logging.hh"
 #include "util/source_reader.hh"
 #include <algorithm>
 #include <iterator>
+#include <memory>
 #include <queue>
 #include <type_traits>
 
 using namespace cascade;
 namespace fs = std::filesystem;
 
-driver::driver(int argc, const char **argv) : m_arg_parser(argc, argv) {}
+static void log_errors(std::vector<std::unique_ptr<errors::error>> errs, util::logger logger) {
+  using err_ptr = std::unique_ptr<errors::error>;
+  using moveit = std::move_iterator<std::vector<err_ptr>::iterator>;
+
+  // can't use a normal for..in to move objects out
+  std::for_each(moveit(errs.begin()), moveit(errs.end()), [&logger](err_ptr err) {
+    // aren't move iterators beautiful?
+    logger.error(std::move(err));
+  });
+}
+
+driver::driver(int argc, const char **argv) : m_options(util::parse(argc, argv)) {}
 
 std::optional<ast::program> driver::parse(stdpath path, std::string_view source) {
   std::vector<std::unique_ptr<errors::error>> errs;
-  util::logger logger(source);
 
   auto report_err = [&errs](std::unique_ptr<errors::error> err) {
     // errors get passed in by the class calling this lambda
-    errs.push_back(std::move(err));
+    errs.emplace_back(std::move(err));
   };
 
   auto tokens = core::lexer(source, path, report_err).lex();
-
-#ifndef NDEBUG
   util::debug_print(tokens);
-
-  auto parsed = core::parse(tokens, report_err);
-#else
   auto parsed = core::parse(std::move(tokens), report_err);
-#endif
 
-  if (errs.size() != 0) {
-    using err_ptr = std::unique_ptr<errors::error>;
-    using moveit = std::move_iterator<std::vector<err_ptr>::iterator>;
-
-    // can't use a normal for..in with non-copyable objects
-    std::for_each(moveit(errs.begin()), moveit(errs.end()), [&logger](err_ptr err) {
-      // aren't move iterators beautiful?
-      logger.error(std::move(err));
-    });
-  }
+  log_errors(std::move(errs), util::logger(source));
 
   return (errs.size() == 0) ? std::make_optional(std::move(parsed)) : std::nullopt;
+}
+
+bool driver::parse(const std::vector<util::file_source> &files) {
+  auto has_failed = false;
+
+  for (const auto &file : files) {
+    m_sources.push_back(file.source());
+
+    auto parsed = parse(file.path(), file.source());
+
+    if (parsed) {
+      util::debug_print(parsed.value());
+
+      m_programs.emplace_back(std::move(parsed.value()));
+    } else {
+      has_failed = true;
+    }
+  }
+
+  return has_failed;
+}
+
+bool driver::typecheck() {
+  std::vector<std::unique_ptr<errors::error>> errs;
+
+  core::typecheck(m_programs, m_sources, [&errs](std::unique_ptr<errors::error> err) {
+    // commenting to disallow some terrible formatting
+    errs.emplace_back(std::move(err));
+  });
+
+  auto err_count = errs.size();
+
+  using err_ptr = std::unique_ptr<errors::error>;
+  using moveit = std::move_iterator<std::vector<err_ptr>::iterator>;
+
+  // can't use a normal for..in to move objects out
+  std::for_each(moveit(errs.begin()), moveit(errs.end()), [](err_ptr err) {
+    auto error = static_cast<errors::type_error *>(err.get());
+
+    // hacky solution to a problem I didn't anticipate having to deal with,
+    // and one that would take a bunch of effort to shift things around
+    // to work with
+    util::logger(error->source()).error(std::move(err));
+  });
+
+  return err_count != 0;
 }
 
 void driver::compile(stdpath path, ast::program prog) {
@@ -76,14 +119,12 @@ void driver::compile(stdpath path, ast::program prog) {
 }
 
 int driver::run() {
-  auto args_option = m_arg_parser.parse();
-
   // the arg parser will log an error if there was an issue
-  if (!args_option) {
+  if (!m_options) {
     return -1;
   }
 
-  auto args = args_option.value();
+  auto args = m_options.value();
 
   // if no files are passed in, input is read from stdin
   auto sources = args.files().size() == 0 ? util::read_source<util::pipe_reader>(args)
@@ -94,20 +135,13 @@ int driver::run() {
     return -1;
   }
 
-  std::vector<ast::program> programs;
-  auto has_failed = false;
-
-  for (auto &file : sources.value()) {
-    auto parsed = parse(file.path(), file.source());
-
-    if (parsed) {
-      util::debug_print(parsed.value());
-
-      programs.emplace_back(std::move(parsed.value()));
-    } else {
-      has_failed = true;
-    }
+  if (parse(sources.value())) {
+    return -2;
   }
 
-  return has_failed;
+  if (typecheck()) {
+    return -3;
+  }
+
+  return 0;
 }

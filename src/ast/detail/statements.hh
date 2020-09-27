@@ -42,13 +42,13 @@ namespace cascade::ast {
 
   class let : public statement, public visitable<let> {
     std::unique_ptr<expression> m_initializer;
-    std::unique_ptr<type_base> m_type;
+    std::unique_ptr<type> m_type;
     std::string m_name;
 
   public:
     explicit let(core::source_info info,
         std::unique_ptr<expression> init,
-        std::unique_ptr<type_base> type,
+        std::unique_ptr<type> type,
         std::string_view name)
         : statement(kind::statement_let, std::move(info))
         , m_initializer(std::move(init))
@@ -57,20 +57,20 @@ namespace cascade::ast {
 
     [[nodiscard]] expression &initializer() const { return *m_initializer; }
 
-    [[nodiscard]] type_base &type() const { return *m_type; }
+    [[nodiscard]] type &type() const { return *m_type; }
 
     [[nodiscard]] std::string_view name() const { return m_name; }
   };
 
   class mut : public statement, public visitable<mut> {
     std::unique_ptr<expression> m_initializer;
-    std::unique_ptr<type_base> m_type;
+    std::unique_ptr<type> m_type;
     std::string m_name;
 
   public:
     explicit mut(core::source_info info,
         std::unique_ptr<expression> init,
-        std::unique_ptr<type_base> type,
+        std::unique_ptr<type> type,
         std::string_view name)
         : statement(kind::statement_mut, std::move(info))
         , m_initializer(std::move(init))
@@ -79,7 +79,7 @@ namespace cascade::ast {
 
     [[nodiscard]] expression &initializer() const { return *m_initializer; }
 
-    [[nodiscard]] type_base &type() const { return *m_type; }
+    [[nodiscard]] type &type() const { return *m_type; }
 
     [[nodiscard]] std::string_view name() const { return m_name; }
   };

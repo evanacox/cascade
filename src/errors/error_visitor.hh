@@ -28,6 +28,7 @@ namespace cascade::errors {
   class error;
   class token_error;
   class ast_error;
+  class type_error;
 
   /** @brief Represents a visitor for errors */
   class error_visitor {
@@ -43,6 +44,12 @@ namespace cascade::errors {
      * @param node_err The node to visit
      */
     virtual void visit(ast_error &node_err) = 0;
+
+    /**
+     * @brief Visits a type error
+     * @param node_err The type to visit
+     */
+    virtual void visit(type_error &node_err) = 0;
 
     virtual ~error_visitor() {}
   };

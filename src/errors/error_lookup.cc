@@ -53,6 +53,8 @@ static std::unordered_map<error_code, std::string_view> errs{
     {ec::expected_declaration, "expected a declaration"},
     {ec::duplicate_module, "file already has a module declaration"},
     {ec::unexpected_builtin, "unexpected builtin name"},
+    {ec::dereference_requires_pointer_type, "unable to dereference a non-pointer type"},
+    {ec::mismatched_types, "mismatched types"},
 };
 
 static std::unordered_map<error_code, std::string_view> notes{
