@@ -54,6 +54,7 @@ namespace cascade::errors {
     unexpected_builtin,
     dereference_requires_pointer_type,
     mismatched_types,
+    using_variable_in_initializer,
   };
 
   /**

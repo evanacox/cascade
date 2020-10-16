@@ -55,6 +55,7 @@ static std::unordered_map<error_code, std::string_view> errs{
     {ec::unexpected_builtin, "unexpected builtin name"},
     {ec::dereference_requires_pointer_type, "unable to dereference a non-pointer type"},
     {ec::mismatched_types, "mismatched types"},
+    {ec::using_variable_in_initializer, "unable to use a variable in its own initializer"},
 };
 
 static std::unordered_map<error_code, std::string_view> notes{
@@ -70,6 +71,7 @@ static std::unordered_map<error_code, std::string_view> notes{
         "Char literals can only contain a single UTF-8 code point, not a UTF-8 character. If it "
         "doesn't fit inside one byte, you cannot use it."},
     {ec::expected_opening_brace, "A block was expected to begin here."},
+    {ec::using_variable_in_initializer, "Variables can't use themselves in their own initializer."},
 };
 
 std::string_view errors::error_message_from_code(error_code code) { return errs[code]; }

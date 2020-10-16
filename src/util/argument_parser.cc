@@ -18,7 +18,8 @@
  *
  * util/argument_parser.cc:
  *   Implements the `argument_parser` class used by the driver to guide
- *   compilation
+ *   compilation. Note: Only reason there's a dependency is because franky
+ *   I couldn't be bothered to make my own at the time
  *
  *---------------------------------------------------------------------------*/
 

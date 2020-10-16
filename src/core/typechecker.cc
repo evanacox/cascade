@@ -1,3 +1,27 @@
+/*---------------------------------------------------------------------------*
+ *
+ * Copyright 2020 Evan Cox
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *---------------------------------------------------------------------------*
+ *
+ * core/typechecker.cc
+ *   Implements the type logic for the language, including various casting and
+ *   promotion / conversion rules
+ *
+ *---------------------------------------------------------------------------*/
+
 #include "core/typechecker.hh"
 #include "ast/ast.hh"
 #include "ast/detail/declarations.hh"
@@ -11,6 +35,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 
 using namespace cascade;
@@ -20,6 +45,11 @@ using kind = ast::kind;
 using mods = ast::type_data::type_modifiers;
 using base = ast::type_data::type_base;
 using ec = errors::error_code;
+
+class error_type : public ast::type_data {
+public:
+  error_type() : type_data({}, ast::type_data::type_base::error_type, 0) {}
+};
 
 static std::string expected_type(const ast::type_data &expected, const ast::type_data &got) {
   return fmt::format("Expected type '{}', got type '{}'.",
@@ -122,8 +152,11 @@ class typechecker : public ast::visitor<ast::type_data> {
 
   std::string_view m_current_source;
 
-  /** @brief VIEW into the current scope, MAY POINT TO STACK OBJECT */
+  /** @brief VIEW into the current scope, MAY POINT TO STACK OBJECT. GETS REASSIGNED */
   std::reference_wrapper<scope> m_current_scope;
+
+  /** @brief Name of the currently initializing variable, if any */
+  std::string_view m_currently_initializing;
 
   /**
    * @brief Handles adding a declaration to the global scope initially
@@ -165,7 +198,9 @@ class typechecker : public ast::visitor<ast::type_data> {
    * @param rhs Type of the RHS value
    * @return A type, if possible
    */
-  ast::type_data binary_convert(const ast::type_data &lhs, const ast::type_data &rhs);
+  ast::type_data binary_convert(const ast::binary &node);
+
+  ast::type_data promote(const ast::type_data &to_upcast, const ast::type_data &upcast_to);
 
 public:
   /** @brief Creates a typechecker */
@@ -198,6 +233,27 @@ void typechecker::report(const ast::node &node, ec code, std::string message) {
   m_has_failed = true;
 }
 
+ast::type_data typechecker::binary_convert(const ast::binary &node) {
+  auto lhs_type = node.lhs().accept(*this);
+  auto rhs_type = node.rhs().accept(*this);
+
+  if (can_promote(lhs_type, rhs_type)) {
+    return rhs_type;
+  }
+
+  if (can_promote(rhs_type, lhs_type)) {
+    return lhs_type;
+  }
+
+  report(node,
+      ec::mismatched_types,
+      fmt::format("Unable to operate on '{}' and '{}'. Can't promote one to the other implicitly!",
+          util::to_string(lhs_type),
+          util::to_string(rhs_type)));
+
+  return error_type();
+}
+
 bool typechecker::can_promote(const ast::type_data &from, const ast::type_data &to) {
   // no implicit conversions between f to u or i, or i to u
   if (from.is_builtin()) {
@@ -215,6 +271,7 @@ bool typechecker::can_promote(const ast::type_data &from, const ast::type_data &
 ast::type_data typechecker::visit(ast::type &ref) { return ref.data(); }
 
 ast::type_data typechecker::visit(ast::const_decl &ref) {
+  m_currently_initializing = ref.name();
   auto initializer_type = ref.initializer().accept(*this);
 
   // e.g `const x = 5;`
@@ -229,10 +286,12 @@ ast::type_data typechecker::visit(ast::const_decl &ref) {
     report(ref, ec::mismatched_types, expected_type(ref.type().data(), initializer_type));
   }
 
+  m_currently_initializing = "";
   return ref.type().data();
 }
 
 ast::type_data typechecker::visit(ast::static_decl &ref) {
+  m_currently_initializing = ref.name();
   auto initializer_type = ref.initializer().accept(*this);
 
   // e.g `static x = 5;`
@@ -246,6 +305,7 @@ ast::type_data typechecker::visit(ast::static_decl &ref) {
     report(ref, ec::mismatched_types, expected_type(ref.type().data(), initializer_type));
   }
 
+  m_currently_initializing = "";
   return ref.type().data();
 }
 
@@ -269,10 +329,7 @@ ast::type_data typechecker::visit(ast::import_decl &ref) {
   assert(false && "Not implemented");
 }
 
-ast::type_data typechecker::visit(ast::export_decl &ref) {
-  (void)ref;
-  assert(false && "Not implemented");
-}
+ast::type_data typechecker::visit(ast::export_decl &ref) { return ref.exported().accept(*this); }
 
 ast::type_data typechecker::visit(ast::char_literal &ref) {
   (void)ref;
@@ -293,7 +350,7 @@ ast::type_data typechecker::visit(ast::int_literal &ref) {
 ast::type_data typechecker::visit(ast::float_literal &ref) {
   // todo: check for suffixes
   (void)ref;
-  return ast::type_data({}, base::floating_point, 32);
+  return ast::type_data({}, base::floating_point, 64);
 }
 
 ast::type_data typechecker::visit(ast::bool_literal &ref) {
@@ -302,8 +359,13 @@ ast::type_data typechecker::visit(ast::bool_literal &ref) {
 }
 
 ast::type_data typechecker::visit(ast::identifier &ref) {
-  (void)ref;
-  assert(false && "Not implemented");
+  if (ref.name() == m_currently_initializing) {
+    report(ref, ec::using_variable_in_initializer);
+
+    return error_type();
+  }
+
+  return m_current_scope.get().get(ref.name());
 }
 
 ast::type_data typechecker::visit(ast::call &ref) {
@@ -314,38 +376,26 @@ ast::type_data typechecker::visit(ast::call &ref) {
 ast::type_data typechecker::visit(ast::binary &ref) {
   using opkind = core::token::kind;
 
-#define ARITHMETIC(op)                                                                             \
-  case op: {                                                                                       \
-    auto left_type = ref.lhs().accept(*this);                                                      \
-    auto right_type = ref.rhs().accept(*this);                                                     \
-                                                                                                   \
-    if () {                                                                                        \
-    }
-
   switch (ref.op()) {
-    case opkind::symbol_plus: {
-      auto type = ref.rhs().accept(*this);
-      type.modifiers().push_front(mods::mut_ptr);
-      return type;
-    }
-    case opkind::symbol_star: {
-      auto type = ref.rhs().accept(*this);
-
-      if (type.modifiers().front() != mods::mut_ptr || type.modifiers().front() != mods::ptr) {
-        report(ref,
-            ec::dereference_requires_pointer_type,
-            fmt::format("Expected a pointer type, got type '{}'", util::to_string(type)));
-      }
-
-      return type;
-    }
-    case opkind::symbol_pound: {
-      auto type = ref.rhs().accept(*this);
-      type.modifiers().push_front(mods::mut_ref);
-      return type;
-    }
+    case opkind::symbol_plus:
     case opkind::symbol_hyphen:
-      return ref.rhs().accept(*this);
+    case opkind::symbol_star:
+    case opkind::symbol_forwardslash:
+    case opkind::symbol_percent:
+    case opkind::symbol_pound:
+    case opkind::symbol_caret:
+    case opkind::symbol_pipe:
+    case opkind::symbol_gtgt:
+    case opkind::symbol_ltlt:
+    case opkind::symbol_gt:
+    case opkind::symbol_geq:
+    case opkind::symbol_lt:
+    case opkind::symbol_leq:
+    case opkind::symbol_equalequal:
+    case opkind::keyword_and:
+    case opkind::keyword_or:
+    case opkind::keyword_xor:
+      return binary_convert(ref);
     default:
       break;
   }
@@ -418,11 +468,13 @@ ast::type_data typechecker::visit(ast::expression_statement &ref) {
 }
 
 ast::type_data typechecker::visit(ast::let &ref) {
+  m_currently_initializing = ref.name();
   (void)ref;
   assert(false && "Not implemented");
 }
 
 ast::type_data typechecker::visit(ast::mut &ref) {
+  m_currently_initializing = ref.name();
   (void)ref;
   assert(false && "Not implemented");
 }

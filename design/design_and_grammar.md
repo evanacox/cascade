@@ -735,3 +735,6 @@ This creates a new `Point` instance (let's call it `pt2`), and calls `Point::@cl
 
 ## Polymorphism
 **TO BE DECIDED**
+
+
+## Casts

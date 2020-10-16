@@ -11,6 +11,15 @@ abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
 
+class Color:
+    @staticmethod
+    def bg_green(string: str) -> str
+        return 
+
+
+class Logger:
+    @staticmethod
+
 
 class TestRunner:
     """Deals with running tests and storing results,
